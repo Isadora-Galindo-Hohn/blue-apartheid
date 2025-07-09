@@ -9,7 +9,6 @@
 # 3. average access to water source is not showing in map
 # 4. For shear of distance over 200 m I would like to divide it in 10% brackets
 # 5. Divide no data income to unknown/respondent refused which is "NaN" in the code  and no data
-# 6. Hard code color of population group
 
 # Load libraries
 library(tidyverse) # For data manipulation (dplyr, readr, purrr) and plotting (ggplot2)
@@ -34,12 +33,16 @@ years <- c(2009, 2011, 2014, 2016, 2018, 2022, 2024)
 years_interrupt <- c(2018, 2022, 2024)
 years_distance <- c(2009, 2011, 2014, 2016)
 
+indian_or_asian <- "Indian/Asian"
+black_african <- "Black African"
+coloured <- "Coloured"
+white <- "White"
+other <- "Other"
 
 # Load and preprocess all yearly data files
 all_data <- map_dfr(years, function(y) {
   file <- paste0(data_path, "data_", y, ".csv")
   df <- read.csv2(file, fileEncoding = "latin1", stringsAsFactors = FALSE)
-  
 
   # Robust numeric conversion for all relevant columns
   df$avrage_income_bracket <- df$avrage_income_bracket %>%
@@ -73,8 +76,8 @@ all_data <- all_data %>%
   mutate(
     # Standardize 'Indian or Asian' and 'Asian/Indian' to 'Indian/Asian' before converting to factor
     dominent_pop_group = case_when(
-      dominent_pop_group == "Indian or Asian" ~ "Indian/Asian",
-      dominent_pop_group == "Asian/Indian" ~ "Indian/Asian", # Added this line for consistency
+      dominent_pop_group == "Indian or Asian" ~ indian_or_asian,
+      dominent_pop_group == "Asian/Indian" ~ indian_or_asian, # Added this line for consistency
       TRUE ~ dominent_pop_group
     ),
     dominent_pop_group = fct_drop(as.factor(dominent_pop_group)), # Convert to factor, drop unused levels
@@ -117,11 +120,11 @@ log_income_breaks <- log(income_midpoints_numeric)
 # --- Define a consistent color palette for dominent_pop_group ---
 # Ensure all possible levels are included. You can customize these colors.
 group_colors <- c(
-  "Black African" = "#E41A1C", # Red
-  "Coloured" = "#377EB8", # Blue
-  "Indian/Asian" = "#4DAF4A", # Green (now covers both variations)
-  "White" = "#FF7F00", # Orange
-  "Other" = "#984EA3" # Purple
+  black_african = "#E41A1C", # Red
+  coloured = "#377EB8", # Blue
+  indian_or_asian = "#4DAF4A", # Green (now covers both variations)
+  white = "#FF7F00", # Orange
+  other = "#984EA3" # Purple
 )
 
 # --- Define color palettes for the new 10% interval categories ---
@@ -541,11 +544,7 @@ cat("---\n")
 combined_plot_colors <- c(
   "log(income)" = "black",
   "kl_divergence" = "darkgreen",
-  "Black African" = "#E41A1C", # Red
-  "Coloured" = "#377EB8", # Blue
-  "Indian/Asian" = "#4DAF4A", # Green (now covers both variations)
-  "White" = "#FF7F00", # Orange
-  "Other" = "#984EA3" # Purple
+  group_colors
 )
 
 
@@ -585,10 +584,10 @@ ggsave(file.path(OUTPUT_DIR, "Plot 7 - distance_coefficients_with_significance.p
 desired_plot_term_levels <- c(
   "log(income)",
   "kl_divergence",
-  "Coloured",
-  "Indian/Asian",
-  "White",
-  "Other"
+  coloured,
+  indian_or_asian,
+  white,
+  other
 )
 
 # --- Generate Table for Interruption Coefficients ---
