@@ -1042,7 +1042,7 @@ generate_and_save_map <- function(
     # Average access to water
     # Ensure it's a factor and handle NA
     labels <- c("Piped, into dwelling", "Piped, into yard only", "Street taps or standpipes", "Other")
-    manual_colors <- c("darkblue", "blue", "lightblue", "grey40")
+    manual_colors <- c("darkblue", "blue", "lightblue", "grey80")
     current_wards_sf <- current_wards_sf %>%
       mutate(
         map_var = factor(current_wards_sf$avrage_ace, levels = labels)  # <- change "water_access" to your actual column name
@@ -1088,7 +1088,7 @@ generate_and_save_map <- function(
   } else if (variable_name == "kl_diverge") {
     breaks <- c(0, 0.5, 1, 1.5, 2, 100)
     labels <- c("Very low", "Low", "Moderate", "High", "Very high")
-    kl_colors <- rev(heat.colors(length(breaks) - 1))
+    colors <- rev(heat.colors(length(breaks) - 1))
     # KL-divergence
     current_wards_sf <- current_wards_sf %>%
       mutate(
@@ -1121,13 +1121,27 @@ generate_and_save_map <- function(
     map_var_aes <- sym("map_var")
   } else if (variable_name == "dist_over_") {
     # Distance over 200m
+    breaks <- c(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1)
+    labels <- c(
+      "0-10%", "10-20%", "20-30%", "30-40%", "40-50%",
+      "50-60%", "60-70%", "70-80%", "80-90%", "90-100%"
+    )
+    colors <- rev(heat.colors(length(breaks) - 1))
     current_wards_sf <- current_wards_sf %>%
-      mutate(map_var = parse_number(.data[[variable_name]]))
-    scale_fn <- scale_fill_viridis_c(
-      option = "turbo",
+      mutate(map_var = cut(
+          parse_number(current_wards_sf$dist_over_),
+          breaks = breaks,
+          labels = labels,
+          include.lowest = TRUE,
+          right = FALSE
+        )
+    )
+    scale_fn <- scale_fill_brewer(
+      palette = "YlOrRd",
       na.value = "grey80",
-      name = "Share >200m\nDistance"
-    ) # Another viridis option
+      name = "Share >200m\nDistance",
+      drop=TRUE
+    )
     legend_name <- "Share of Households >200m from Water"
     map_var_aes <- sym("map_var")
   } else {
