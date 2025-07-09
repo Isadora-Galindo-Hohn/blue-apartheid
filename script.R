@@ -1,9 +1,7 @@
 #### PROBLEMS
-# 1. average access to water source is not showing in map
-# 2. Divide no data income to unknown/respondent refused which is "NaN" in the code  and no data
-# 3. For shear of distance over 200 m I would like to divide it in 10% brackets
-# 4. Divide no data income to unknown/respondent refused which is "NaN" in the code  and no data
-# 5. Hard code color of population group, maybe
+# 1. Divide no data income to unknown/respondent refused which is "NaN" in the code  and no data
+# 2. For shear of distance over 200 m I would like to divide it in 10% brackets
+# 3. Hard code color of population group, maybe
 
 # Load libraries
 library(tidyverse) # For data manipulation (dplyr, readr, purrr) and plotting (ggplot2)
@@ -1043,27 +1041,22 @@ generate_and_save_map <- function(
   } else if (variable_name == "avrage_ace") {
     # Average access to water
     # Ensure it's a factor and handle NA
+    labels <- c("Piped, into dwelling", "Piped, into yard only", "Street taps or standpipes", "Other")
+    manual_colors <- c("darkblue", "blue", "lightblue", "grey40")
     current_wards_sf <- current_wards_sf %>%
       mutate(
-        map_var = case_when(
-          is.na(avrage_ace) ~ "No Data",
-          TRUE ~ as.character(avrage_ace)
-        ),
-        map_var = factor(
-          map_var,
-          levels = c(levels(data_source$avrage_ace), "No Data")
-        )
+        map_var = factor(current_wards_sf$avrage_ace, levels = labels)  # <- change "water_access" to your actual column name
       )
-    # Define custom colors if desired or use Brewer. Add 'No Data' color.
-    access_palette <- brewer.pal(n = 4, name = "BuGn")
-    map_colors <- c(access_palette, "No Data" = "grey90")
+
+    # 3. Use scale_fill_gradientn with breaks and labels
     scale_fn <- scale_fill_manual(
-      values = map_colors,
-      na.translate = FALSE,
-      name = "Avg Water\nAccess"
+      values = setNames(manual_colors, labels),
+      na.value = "grey90",
+      name = "Average Water Access"
     )
+
     legend_name <- "Average Water Access"
-    map_var_aes <- sym("map_var")
+    map_var_aes <- sym("map_var")  # if using tidy evaluation
   } else if (variable_name == "pop_density") {
     # Population dencity
     # Calculate population density (total_pop / area)
