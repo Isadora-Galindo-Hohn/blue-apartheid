@@ -1095,13 +1095,28 @@ generate_and_save_map <- function(
       drop=FALSE
     )
     legend_name <- "Population Density"
-  
-  }
-
-  # KL-divergence
-  else if (variable_name == "kl_diverge") {
-    current_wards_sf <- current_wards_sf %>% mutate(map_var = parse_number(.data[[variable_name]]))
-    scale_fn <- scale_fill_viridis_c(option = "viridis", na.value = "grey80", name = "KL Divergence") # Different viridis option for diversity
+    map_var_aes <- sym("map_var_bin")
+  } else if (variable_name == "kl_diverge") {
+    breaks <- c(0, 0.5, 1, 1.5, 2, 100)
+    labels <- c("Very low", "Low", "Moderate", "High", "Very high")
+    kl_colors <- rev(heat.colors(length(breaks) - 1))
+    # KL-divergence
+    current_wards_sf <- current_wards_sf %>%
+      mutate(
+        map_var = cut(
+          parse_number(.data[[variable_name]]),
+          breaks = breaks,
+          labels = labels,
+          include.lowest = TRUE,
+          right = FALSE
+        ),
+      )
+    scale_fn <- scale_fill_brewer(
+      palette = "YlOrRd",
+      na.value = "grey80",
+      name = "Racial Diversity (KL Divergence)",
+      drop=FALSE
+    )
     legend_name <- "Racial Diversity (KL Divergence)"
     map_var_aes <- sym("map_var")
   } else if (variable_name == "interrupti") {
