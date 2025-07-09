@@ -7,8 +7,7 @@
 # Very high > 2
 # 2. Population density looks wrong
 # 3. average access to water source is not showing in map
-# 4. For shear of distance over 200 m I would like to divide it in 10% brackets
-# 5. Divide no data income to unknown/respondent refused which is "NaN" in the code  and no data
+# 4. Divide no data income to unknown/respondent refused which is "NaN" in the code  and no data
 
 # Load libraries
 library(tidyverse) # For data manipulation (dplyr, readr, purrr) and plotting (ggplot2)
@@ -1074,11 +1073,29 @@ generate_and_save_map <- function(
     # Calculate population density (total_pop / area)
     current_wards_sf <- current_wards_sf %>%
       mutate(
-        map_var = (as.numeric(total_pop) / (st_area(.) %>% as.numeric())) # LOOKS WRONG
+        map_var = (as.numeric(total_pop) / (st_area(.) %>% as.numeric() * 10e-6)) # LOOKS WRONG
       )
-    scale_fn <- scale_fill_viridis_c(option = "heat", na.value = "grey80", name = "Pop. Density\n(per m\u00b2)")
+    breaks <- classInt::classIntervals(
+      current_wards_sf$map_var,
+      n = 5,
+      style = "quantile"
+    )$brks # Use quantile breaks for better distribution
+      current_wards_sf <- current_wards_sf %>%
+      mutate(
+        map_var_bin = cut(
+          map_var,
+          breaks = breaks,
+          include.lowest = TRUE,
+          dig.lab=10
+        )
+      )
+    scale_fn <- scale_fill_brewer(
+      palette = "YlOrRd",
+      na.value = "grey80",
+      name = "Pop. Density\n(per km\u00b2)",
+      drop=FALSE
+    )
     legend_name <- "Population Density"
-    map_var_aes <- sym("map_var")
   
   }
 
