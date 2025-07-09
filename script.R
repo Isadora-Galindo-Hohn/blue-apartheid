@@ -149,6 +149,8 @@ get_greens_palette <- colorRampPalette(brewer.pal(9, "Greens"))
 
 # --- NEW: DESCRIPTIVE PLOTS (Similar to Venter et al. Fig. 2A) ---
 
+OUTPUT_DIR <- "output"
+if (!dir.exists(OUTPUT_DIR)) dir.create(OUTPUT_DIR)
 # Plot 1: Income Distribution by Dominant Population Group (across all years)
 ggplot(clean_data, aes(x = log(income), fill = dominent_pop_group)) +
   geom_density(alpha = 0.6) +
@@ -163,7 +165,7 @@ ggplot(clean_data, aes(x = log(income), fill = dominent_pop_group)) +
   scale_x_continuous(breaks = log_income_breaks, labels = income_labels_text) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   scale_fill_manual(values = group_colors) # Apply consistent fill colors
-ggsave("Plot 1 - income_distribution_by_group.png", width = 10, height = 6)
+ggsave(file.path(OUTPUT_DIR, "Plot 1 - income_distribution_by_group.png"), width = 10, height = 6)
 
 # --- NEW: RELATIONAL PLOTS (Similar to Venter et al. Fig. 3 & 4) ---
 
@@ -187,7 +189,7 @@ if (nrow(plot_data_distance) > 0) {
     scale_x_continuous(breaks = log_income_breaks, labels = income_labels_text) +
     theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
     scale_color_manual(values = group_colors) # Apply consistent line/point colors
-  ggsave("Plot 2 - distance_vs_income_by_group.png", width = 10, height = 6)
+  ggsave(file.path(OUTPUT_DIR, "Plot 2 - distance_vs_income_by_group.png"), width = 10, height = 6)
 } else {
   message(paste0("No data to plot distance vs. income for year ", year_for_distance_plot, "."))
 }
@@ -212,7 +214,7 @@ if (nrow(plot_data_interrupt) > 0) {
     scale_x_continuous(breaks = log_income_breaks, labels = income_labels_text) +
     theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
     scale_color_manual(values = group_colors) # Apply consistent line/point colors
-  ggsave("Plot 3 - interruptions_vs_income_by_group.png", width = 10, height = 6)
+  ggsave(file.path(OUTPUT_DIR, "Plot 3 - interruptions_vs_income_by_group.png"), width = 10, height = 6)
 } else {
   message(paste0("No data to plot interruptions vs. income for year ", year_for_interrupt_plot, "."))
 }
@@ -243,7 +245,7 @@ if (nrow(interruption_trajectories) > 0) {
     theme(legend.position = "bottom") +
     scale_x_continuous(breaks = years_interrupt) +
     scale_color_manual(values = group_colors) # Apply consistent line colors
-  ggsave("Plot 4 - interruption_trajectories_by_group.png", width = 10, height = 6)
+  ggsave(file.path(OUTPUT_DIR, "Plot 4 - interruption_trajectories_by_group.png"), width = 10, height = 6)
 } else {
   message("No data to plot interruption frequency trajectories.")
 }
@@ -273,7 +275,7 @@ if (nrow(distance_trajectories) > 0) {
     theme(legend.position = "bottom") +
     scale_x_continuous(breaks = years_distance) +
     scale_color_manual(values = group_colors) # Apply consistent line colors
-  ggsave("Plot 5 - distance_trajectories_by_group.png", width = 10, height = 6)
+  ggsave(file.path(OUTPUT_DIR, "Plot 5 - distance_trajectories_by_group.png"), width = 10, height = 6)
 } else {
   message("No data to plot distance >200m trajectories.")
 }
@@ -320,7 +322,7 @@ if (nrow(dist_category_data_10pct) > 0) {
     theme_minimal(base_size = 13) +
     theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "bottom") +
     scale_fill_manual(values = dist_interval_colors_10pct)
-  ggsave("Plot 12 - wards_by_distance_10pct_category_yearly.png", width = 12, height = 8)
+  ggsave(file.path(OUTPUT_DIR, "Plot 12 - wards_by_distance_10pct_category_yearly.png"), width = 12, height = 8)
 } else {
   message("No data to plot wards by distance 10pct category yearly.")
 }
@@ -356,7 +358,7 @@ if (nrow(interruption_category_data_10pct) > 0) {
     theme_minimal(base_size = 13) +
     theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "bottom") +
     scale_fill_manual(values = interrupt_interval_colors_10pct)
-  ggsave("Plot 13 - wards_by_interruption_10pct_category_yearly.png", width = 12, height = 8)
+  ggsave(file.path(OUTPUT_DIR, "Plot 13 - wards_by_interruption_10pct_category_yearly.png"), width = 12, height = 8)
 } else {
   message("No data to plot wards by interruption 10pct category yearly.")
 }
@@ -417,7 +419,7 @@ if (nrow(income_category_data_10pct) > 0) {
     theme_minimal(base_size = 13) +
     theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "bottom") +
     scale_fill_manual(values = income_interval_colors_10pct)
-  ggsave("Plot 14 - wards_by_income_10pct_category_yearly.png", width = 12, height = 8)
+  ggsave(file.path(OUTPUT_DIR, "Plot 14 - wards_by_income_10pct_category_yearly.png"), width = 12, height = 8)
 } else {
   message("No data to plot wards by income 10pct category yearly.")
 }
@@ -560,7 +562,7 @@ ggplot(summary_interrupt, aes(x = factor(year), y = estimate, color = plot_term,
   theme_minimal(base_size = 13) +
   theme(legend.position = "bottom") +
   scale_color_manual(values = combined_plot_colors, drop = FALSE) # Added drop = FALSE
-ggsave("Plot 6 - interruption_coefficients_with_significance.png", width = 10, height = 6)
+ggsave(file.path(OUTPUT_DIR, "Plot 6 - interruption_coefficients_with_significance.png"), width = 10, height = 6)
 
 
 # 🟡 Updated Plot 7: Distance Coefficients
@@ -576,7 +578,7 @@ ggplot(summary_distance, aes(x = factor(year), y = estimate, color = plot_term, 
   theme_minimal(base_size = 13) +
   theme(legend.position = "bottom") +
   scale_color_manual(values = combined_plot_colors, drop = FALSE) # Added drop = FALSE
-ggsave("Plot 7 - distance_coefficients_with_significance.png", width = 10, height = 6)
+ggsave(file.path(OUTPUT_DIR, "Plot 7 - distance_coefficients_with_significance.png"), width = 10, height = 6)
 
 # --- Define desired plot_term levels if not already defined globally ---
 # This ensures consistent row order in your tables
@@ -662,11 +664,11 @@ table_distance_data %>%
   print() # Print the kable object
 
 # --- Save Table for Interruption Coefficients as XLSX ---
-write_xlsx(table_interrupt_data, path = "Table 1 - Interruption Coefficients.xlsx")
+write_xlsx(table_interrupt_data, path = file.path(OUTPUT_DIR, "Table 1 - Interruption Coefficients.xlsx"))
 message("Table 1 saved as 'Table 1 - Interruption Coefficients.xlsx'")
 
 # --- Save Table for Distance Coefficients as XLSX ---
-write_xlsx(table_distance_data, path = "Table 2 - Distance Coefficients.xlsx")
+write_xlsx(table_distance_data, path = file.path(OUTPUT_DIR, "Table 2 - Distance Coefficients.xlsx"))
 message("Table 2 saved as 'Table 2 - Distance Coefficients.xlsx'")
 
 
@@ -703,7 +705,6 @@ names(income_interval_colors_10pct_maps) <- income_interval_labels_10pct_new_map
 
 # --- Map Generation Function ---
 generate_and_save_map <- function(year, variable_name, map_title, data_source = clean_data) {
-  
   # Construct shapefile path for the current year
   current_shp_file <- paste0(shp_path_maps, year, "_ward_data.shp")
 
@@ -860,7 +861,7 @@ generate_and_save_map <- function(year, variable_name, map_title, data_source = 
     )
 
   # --- Save the Map ---
-  output_filename <- paste0("Map_", year, "_", gsub(" ", "_", variable_name), ".png")
+  output_filename <- file.path(OUTPUT_DIR, paste0("Map_", year, "_", gsub(" ", "_", variable_name), ".png"))
   ggsave(output_filename, p, width = 9, height = 8, dpi = 300)
   message(paste0("Map saved: ", output_filename))
 
