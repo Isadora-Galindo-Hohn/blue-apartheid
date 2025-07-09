@@ -1,35 +1,32 @@
-####PROBLEMS
-# 1. KL- diverigense i would like to divide it in: 
-        #Very Low segregation = 0-0.5,
-        #Low =0.5-1
-        #Moderate = 1- 1.5
-        #High 1.5-2
-        #Very high > 2
-#2. Population density looks wrong
-#3. average access to water source is not showing in map
-#4. For shear of distance over 200 m I would like to divide it in 10% brackets
-#5. Divide no data income to unknown/respondent refused which is "NaN" in the code  and no data
-#6. Hard code color of population group 
-
-
+#### PROBLEMS
+# 1. KL- diverigense i would like to divide it in:
+# Very Low segregation = 0-0.5,
+# Low =0.5-1
+# Moderate = 1- 1.5
+# High 1.5-2
+# Very high > 2
+# 2. Population density looks wrong
+# 3. average access to water source is not showing in map
+# 4. For shear of distance over 200 m I would like to divide it in 10% brackets
+# 5. Divide no data income to unknown/respondent refused which is "NaN" in the code  and no data
+# 6. Hard code color of population group
 
 # Load libraries
 library(tidyverse) # For data manipulation (dplyr, readr, purrr) and plotting (ggplot2)
-library(broom)     # For tidy() to extract model coefficients
-library(forcats)   # For fct_drop (useful for factor levels)
+library(broom) # For tidy() to extract model coefficients
+library(forcats) # For fct_drop (useful for factor levels)
 library(RColorBrewer) # For color palettes
 library(stats) # Explicitly load stats for quasibinomial if not already loaded by tidyverse
 library(kableExtra) # Load the library
 library(writexl) # Load the library
-library(sf)        # For spatial data operations
-library(ggplot2)   # For plotting
-library(dplyr)     # For data manipulation
-library(viridis)   # For nice color palettes (e.g., for continuous data)
+library(sf) # For spatial data operations
+library(ggplot2) # For plotting
+library(dplyr) # For data manipulation
+library(viridis) # For nice color palettes (e.g., for continuous data)
 library(purrr)
 
-
 # Set working directory and data path
-setwd("C:/Users/Isadora Galindo Hohn/Documents/Utbyte/Kurser/ISDP/R")
+setwd(".")
 data_path <- "../" # Adjust if your data_YEAR.csv files are in a different relative path
 years <- c(2009, 2011, 2014, 2016, 2018, 2022, 2024)
 
@@ -43,13 +40,29 @@ all_data <- map_dfr(years, function(y) {
   file <- paste0(data_path, "data_", y, ".csv")
   df <- read.csv2(file, fileEncoding = "latin1", stringsAsFactors = FALSE)
   
+
   # Robust numeric conversion for all relevant columns
-  df$avrage_income_bracket <- df$avrage_income_bracket %>% as.character() %>% str_replace_all(",", ".") %>% suppressWarnings(as.numeric(.))
-  df$total_pop <- df$total_pop %>% as.character() %>% str_replace_all(",", ".") %>% suppressWarnings(as.numeric(.))
-  df$interruption_freq <- df$interruption_freq %>% as.character() %>% str_replace_all(",", ".") %>% suppressWarnings(as.numeric(.))
-  df$dist_over_200 <- df$dist_over_200 %>% as.character() %>% str_replace_all(",", ".") %>% suppressWarnings(as.numeric(.))
-  df$kl_divergence <- df$kl_divergence %>% as.character() %>% str_replace_all(",", ".") %>% suppressWarnings(as.numeric(.))
-  
+  df$avrage_income_bracket <- df$avrage_income_bracket %>%
+    as.character() %>%
+    str_replace_all(",", ".") %>%
+    suppressWarnings(as.numeric(.))
+  df$total_pop <- df$total_pop %>%
+    as.character() %>%
+    str_replace_all(",", ".") %>%
+    suppressWarnings(as.numeric(.))
+  df$interruption_freq <- df$interruption_freq %>%
+    as.character() %>%
+    str_replace_all(",", ".") %>%
+    suppressWarnings(as.numeric(.))
+  df$dist_over_200 <- df$dist_over_200 %>%
+    as.character() %>%
+    str_replace_all(",", ".") %>%
+    suppressWarnings(as.numeric(.))
+  df$kl_divergence <- df$kl_divergence %>%
+    as.character() %>%
+    str_replace_all(",", ".") %>%
+    suppressWarnings(as.numeric(.))
+
   df$year <- y # Add year column
   return(df)
 })
@@ -73,8 +86,10 @@ all_data <- all_data %>%
     total_pop = as.numeric(total_pop)
   ) %>%
   # Select and order final columns for analysis
-  select(wardid, year, dominent_pop_group, income, kl_divergence,
-         average_access_to_water, dist_over_200, interruption_freq, total_pop)
+  select(
+    wardid, year, dominent_pop_group, income, kl_divergence,
+    average_access_to_water, dist_over_200, interruption_freq, total_pop
+  )
 
 # Filter data for regression: remove NAs in key predictors and handle log(income)
 clean_data <- all_data %>%
@@ -90,9 +105,11 @@ clean_data <- all_data %>%
 # These are the midpoints from your income bracket definition
 income_midpoints_numeric <- c(200, 600, 1200, 2400, 4800, 9600, 19200, 38400, 76800, 153600, 300000)
 # Corresponding labels (can be original brackets or just the midpoints)
-income_labels_text <- c("R1-R400", "R401-R800", "R801-R1.6k", "R1.6k-R3.2k", "R3.2k-R6.4k",
-                        "R6.4k-R12.8k", "R12.8k-R25.6k", "R25.6k-R51.2k", "R51.2k-R102.4k",
-                        "R102.4k-R204.8k", "R204.8k+")
+income_labels_text <- c(
+  "R1-R400", "R401-R800", "R801-R1.6k", "R1.6k-R3.2k", "R3.2k-R6.4k",
+  "R6.4k-R12.8k", "R12.8k-R25.6k", "R25.6k-R51.2k", "R51.2k-R102.4k",
+  "R102.4k-R204.8k", "R204.8k+"
+)
 
 # Calculate the log of these midpoints to use as breaks on the log-transformed axis
 log_income_breaks <- log(income_midpoints_numeric)
@@ -101,10 +118,10 @@ log_income_breaks <- log(income_midpoints_numeric)
 # Ensure all possible levels are included. You can customize these colors.
 group_colors <- c(
   "Black African" = "#E41A1C", # Red
-  "Coloured" = "#377EB8",      # Blue
-  "Indian/Asian" = "#4DAF4A",  # Green (now covers both variations)
-  "White" = "#FF7F00",         # Orange
-  "Other" = "#984EA3"          # Purple
+  "Coloured" = "#377EB8", # Blue
+  "Indian/Asian" = "#4DAF4A", # Green (now covers both variations)
+  "White" = "#FF7F00", # Orange
+  "Other" = "#984EA3" # Purple
 )
 
 # --- Define color palettes for the new 10% interval categories ---
@@ -135,10 +152,12 @@ get_greens_palette <- colorRampPalette(brewer.pal(9, "Greens"))
 # Plot 1: Income Distribution by Dominant Population Group (across all years)
 ggplot(clean_data, aes(x = log(income), fill = dominent_pop_group)) +
   geom_density(alpha = 0.6) +
-  labs(title = "Distribution of Income by Dominant Population Group",
-       x = "Average Monthly Household Income", # Label reflects the original scale
-       y = "Density",
-       fill = "Dominant Group") +
+  labs(
+    title = "Distribution of Income by Dominant Population Group",
+    x = "Average Monthly Household Income", # Label reflects the original scale
+    y = "Density",
+    fill = "Dominant Group"
+  ) +
   theme_minimal(base_size = 13) +
   theme(legend.position = "bottom") +
   scale_x_continuous(breaks = log_income_breaks, labels = income_labels_text) +
@@ -157,10 +176,12 @@ if (nrow(plot_data_distance) > 0) {
     geom_point(alpha = 0.3) +
     # Use GLM with quasibinomial family for proportion data to keep predictions between 0 and 1
     geom_smooth(method = "glm", method.args = list(family = quasibinomial(link = "logit")), se = FALSE) +
-    labs(title = paste0("Share of Distance >200m vs. Income by Dominant Group (Year ", year_for_distance_plot, ")"),
-         x = "Average Monthly Household Income", # Label reflects the original scale
-         y = "Share of Households with Distance >200m",
-         color = "Dominant Group") +
+    labs(
+      title = paste0("Share of Distance >200m vs. Income by Dominant Group (Year ", year_for_distance_plot, ")"),
+      x = "Average Monthly Household Income", # Label reflects the original scale
+      y = "Share of Households with Distance >200m",
+      color = "Dominant Group"
+    ) +
     theme_minimal(base_size = 13) +
     theme(legend.position = "bottom") +
     scale_x_continuous(breaks = log_income_breaks, labels = income_labels_text) +
@@ -180,10 +201,12 @@ if (nrow(plot_data_interrupt) > 0) {
     geom_point(alpha = 0.3) +
     # Use GLM with quasibinomial family for proportion data to keep predictions between 0 and 1
     geom_smooth(method = "glm", method.args = list(family = quasibinomial(link = "logit")), se = FALSE) +
-    labs(title = paste0("Interruption Frequency vs. Income by Dominant Group (Year ", year_for_interrupt_plot, ")"),
-         x = "Average Monthly Household Income", # Label reflects the original scale
-         y = "Share of People with Frequent Water Interruptions",
-         color = "Dominant Group") +
+    labs(
+      title = paste0("Interruption Frequency vs. Income by Dominant Group (Year ", year_for_interrupt_plot, ")"),
+      x = "Average Monthly Household Income", # Label reflects the original scale
+      y = "Share of People with Frequent Water Interruptions",
+      color = "Dominant Group"
+    ) +
     theme_minimal(base_size = 13) +
     theme(legend.position = "bottom") +
     scale_x_continuous(breaks = log_income_breaks, labels = income_labels_text) +
@@ -202,7 +225,7 @@ interruption_trajectories <- clean_data %>%
   group_by(year, dominent_pop_group) %>%
   summarise(
     mean_interruption_freq = mean(interruption_freq, na.rm = TRUE),
-    .groups = 'drop'
+    .groups = "drop"
   )
 
 # Plot 4: Trajectories of Mean Water Interruption Frequency by Dominant Population Group
@@ -210,10 +233,12 @@ if (nrow(interruption_trajectories) > 0) {
   ggplot(interruption_trajectories, aes(x = year, y = mean_interruption_freq, color = dominent_pop_group, group = dominent_pop_group)) +
     geom_line(linewidth = 1.2) +
     geom_point(size = 3) +
-    labs(title = "Trajectories of Mean Water Interruption Frequency by Dominant Group",
-         x = "Year",
-         y = "Mean Share of Frequent Interruptions",
-         color = "Dominant Group") +
+    labs(
+      title = "Trajectories of Mean Water Interruption Frequency by Dominant Group",
+      x = "Year",
+      y = "Mean Share of Frequent Interruptions",
+      color = "Dominant Group"
+    ) +
     theme_minimal(base_size = 13) +
     theme(legend.position = "bottom") +
     scale_x_continuous(breaks = years_interrupt) +
@@ -230,7 +255,7 @@ distance_trajectories <- clean_data %>%
   group_by(year, dominent_pop_group) %>%
   summarise(
     mean_dist_over_200 = mean(dist_over_200, na.rm = TRUE),
-    .groups = 'drop'
+    .groups = "drop"
   )
 
 # Plot 5: Trajectories of Mean Distance >200m by Dominant Population Group
@@ -238,10 +263,12 @@ if (nrow(distance_trajectories) > 0) {
   ggplot(distance_trajectories, aes(x = year, y = mean_dist_over_200, color = dominent_pop_group, group = dominent_pop_group)) +
     geom_line(linewidth = 1.2) +
     geom_point(size = 3) +
-    labs(title = "Trajectories of Mean Distance >200m from Water by Dominant Group",
-         x = "Year",
-         y = "Mean Share of Households with Distance >200m",
-         color = "Dominant Group") +
+    labs(
+      title = "Trajectories of Mean Distance >200m from Water by Dominant Group",
+      x = "Year",
+      y = "Mean Share of Households with Distance >200m",
+      color = "Dominant Group"
+    ) +
     theme_minimal(base_size = 13) +
     theme(legend.position = "bottom") +
     scale_x_continuous(breaks = years_distance) +
@@ -267,10 +294,10 @@ dist_category_data_10pct <- clean_data %>%
   mutate(
     # Use cut to categorize into 10% intervals
     dist_over_200_category = cut(dist_over_200,
-                                 breaks = interval_breaks,
-                                 labels = interval_labels,
-                                 include.lowest = TRUE, # Include 0 in the first interval
-                                 right = FALSE # Intervals like [0, 0.1), [0.1, 0.2)
+      breaks = interval_breaks,
+      labels = interval_labels,
+      include.lowest = TRUE, # Include 0 in the first interval
+      right = FALSE # Intervals like [0, 0.1), [0.1, 0.2)
     ) %>% fct_drop() # Drop unused levels if any
   ) %>%
   filter(!is.na(dist_over_200_category)) # Filter out any NAs from categorization
@@ -283,11 +310,13 @@ names(dist_interval_colors_10pct) <- interval_labels # Assign names to match lab
 if (nrow(dist_category_data_10pct) > 0) {
   ggplot(dist_category_data_10pct, aes(x = dominent_pop_group, fill = dist_over_200_category)) +
     geom_bar(position = "fill") + # 'fill' makes it a proportional stacked bar chart
-    facet_wrap(~ year, scales = "free_y") +
-    labs(title = "Proportion of Wards by Distance >200m (10% Intervals) and Dominant Group",
-         x = "Dominant Population Group",
-         y = "Proportion of Wards",
-         fill = "Distance Share Category") +
+    facet_wrap(~year, scales = "free_y") +
+    labs(
+      title = "Proportion of Wards by Distance >200m (10% Intervals) and Dominant Group",
+      x = "Dominant Population Group",
+      y = "Proportion of Wards",
+      fill = "Distance Share Category"
+    ) +
     theme_minimal(base_size = 13) +
     theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "bottom") +
     scale_fill_manual(values = dist_interval_colors_10pct)
@@ -302,10 +331,10 @@ interruption_category_data_10pct <- clean_data %>%
   mutate(
     # Use cut to categorize into 10% intervals
     interruption_freq_category = cut(interruption_freq,
-                                     breaks = interval_breaks,
-                                     labels = interval_labels,
-                                     include.lowest = TRUE,
-                                     right = FALSE
+      breaks = interval_breaks,
+      labels = interval_labels,
+      include.lowest = TRUE,
+      right = FALSE
     ) %>% fct_drop() # Drop unused levels if any
   ) %>%
   filter(!is.na(interruption_freq_category))
@@ -317,11 +346,13 @@ names(interrupt_interval_colors_10pct) <- interval_labels # Assign names to matc
 if (nrow(interruption_category_data_10pct) > 0) {
   ggplot(interruption_category_data_10pct, aes(x = dominent_pop_group, fill = interruption_freq_category)) +
     geom_bar(position = "fill") +
-    facet_wrap(~ year, scales = "free_y") +
-    labs(title = "Proportion of Wards by Interruption Frequency (10% Intervals) and Dominant Group",
-         x = "Dominant Population Group",
-         y = "Proportion of Wards",
-         fill = "Interruption Share Category") +
+    facet_wrap(~year, scales = "free_y") +
+    labs(
+      title = "Proportion of Wards by Interruption Frequency (10% Intervals) and Dominant Group",
+      x = "Dominant Population Group",
+      y = "Proportion of Wards",
+      fill = "Interruption Share Category"
+    ) +
     theme_minimal(base_size = 13) +
     theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "bottom") +
     scale_fill_manual(values = interrupt_interval_colors_10pct)
@@ -345,7 +376,7 @@ income_interval_labels_10pct_new <- character(num_income_intervals)
 
 for (i in 1:num_income_intervals) {
   lower_bound <- round(income_breaks_unique[i])
-  upper_bound <- round(income_breaks_unique[i+1])
+  upper_bound <- round(income_breaks_unique[i + 1])
   if (i == num_income_intervals) {
     # For the last interval, handle it as "RXXX+" for the highest bracket
     income_interval_labels_10pct_new[i] <- paste0("R", lower_bound, "+")
@@ -359,10 +390,10 @@ income_category_data_10pct <- clean_data %>%
   mutate(
     # Use cut to categorize into 10% intervals based on income quantiles
     income_category = cut(income,
-                          breaks = income_breaks_unique, # Use unique breaks
-                          labels = income_interval_labels_10pct_new, # Use dynamically generated labels
-                          include.lowest = TRUE,
-                          right = FALSE # Intervals like [0, 0.1), [0.1, 0.2)
+      breaks = income_breaks_unique, # Use unique breaks
+      labels = income_interval_labels_10pct_new, # Use dynamically generated labels
+      include.lowest = TRUE,
+      right = FALSE # Intervals like [0, 0.1), [0.1, 0.2)
     ) %>% fct_drop() # Drop unused levels if any
   ) %>%
   filter(!is.na(income_category)) # Filter out any NAs from categorization
@@ -376,11 +407,13 @@ names(income_interval_colors_10pct) <- income_interval_labels_10pct_new # Assign
 if (nrow(income_category_data_10pct) > 0) {
   ggplot(income_category_data_10pct, aes(x = dominent_pop_group, fill = income_category)) +
     geom_bar(position = "fill") + # 'fill' makes it a proportional stacked bar chart
-    facet_wrap(~ year, scales = "free_y") +
-    labs(title = "Proportion of Wards by Income (10% Intervals) and Dominant Group",
-         x = "Dominant Population Group",
-         y = "Proportion of Wards",
-         fill = "Income Category") +
+    facet_wrap(~year, scales = "free_y") +
+    labs(
+      title = "Proportion of Wards by Income (10% Intervals) and Dominant Group",
+      x = "Dominant Population Group",
+      y = "Proportion of Wards",
+      fill = "Income Category"
+    ) +
     theme_minimal(base_size = 13) +
     theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "bottom") +
     scale_fill_manual(values = income_interval_colors_10pct)
@@ -394,14 +427,14 @@ if (nrow(income_category_data_10pct) > 0) {
 run_model <- function(df, y_var, year) {
   df_filtered <- df %>%
     filter(!is.na(.data[[y_var]]), !is.na(income), !is.na(dominent_pop_group), !is.na(kl_divergence))
-  
+
   if (nrow(df_filtered) < 10) {
     message("Skipping ", y_var, " for year ", year, ": not enough valid data rows (", nrow(df_filtered), ")")
     return(NULL)
   }
-  
+
   formula <- as.formula(paste(y_var, "~ log(income) + dominent_pop_group + kl_divergence"))
-  
+
   model_result <- tryCatch(
     lm(formula, data = df_filtered),
     error = function(e) {
@@ -507,10 +540,10 @@ combined_plot_colors <- c(
   "log(income)" = "black",
   "kl_divergence" = "darkgreen",
   "Black African" = "#E41A1C", # Red
-  "Coloured" = "#377EB8",      # Blue
-  "Indian/Asian" = "#4DAF4A",  # Green (now covers both variations)
-  "White" = "#FF7F00",         # Orange
-  "Other" = "#984EA3"          # Purple
+  "Coloured" = "#377EB8", # Blue
+  "Indian/Asian" = "#4DAF4A", # Green (now covers both variations)
+  "White" = "#FF7F00", # Orange
+  "Other" = "#984EA3" # Purple
 )
 
 
@@ -520,8 +553,10 @@ ggplot(summary_interrupt, aes(x = factor(year), y = estimate, color = plot_term,
   geom_point(size = 2) +
   geom_text(aes(label = significance), vjust = -1, size = 3.5) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray") +
-  labs(title = "Predictors of Water Interruptions (2018–2024)",
-       x = "Year", y = "Coefficient", color = "Variable") +
+  labs(
+    title = "Predictors of Water Interruptions (2018–2024)",
+    x = "Year", y = "Coefficient", color = "Variable"
+  ) +
   theme_minimal(base_size = 13) +
   theme(legend.position = "bottom") +
   scale_color_manual(values = combined_plot_colors, drop = FALSE) # Added drop = FALSE
@@ -534,8 +569,10 @@ ggplot(summary_distance, aes(x = factor(year), y = estimate, color = plot_term, 
   geom_point(size = 2) +
   geom_text(aes(label = significance), vjust = -1, size = 3.5) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray") +
-  labs(title = "Predictors of Distance >200m (2009–2016)",
-       x = "Year", y = "Coefficient", color = "Variable") +
+  labs(
+    title = "Predictors of Distance >200m (2009–2016)",
+    x = "Year", y = "Coefficient", color = "Variable"
+  ) +
   theme_minimal(base_size = 13) +
   theme(legend.position = "bottom") +
   scale_color_manual(values = combined_plot_colors, drop = FALSE) # Added drop = FALSE
@@ -581,8 +618,10 @@ table_interrupt_data %>%
   kable_styling(full_width = FALSE) %>% # Adjust width for better display in various outputs
   # Add footnotes for reference group and significance codes
   add_footnote(
-    c("Reference group for dominant population group is 'Black African'.",
-      "Significance codes: *** p < 0.001, ** p < 0.01, * p < 0.05, . p < 0.1"),
+    c(
+      "Reference group for dominant population group is 'Black African'.",
+      "Significance codes: *** p < 0.001, ** p < 0.01, * p < 0.05, . p < 0.1"
+    ),
     notation = "none", # Do not use numeric/alphabetic markers for footnotes
   ) %>%
   print() # Print the kable object to the console (or to your R Markdown/Quarto output)
@@ -614,8 +653,10 @@ table_distance_data %>%
   ) %>%
   kable_styling(full_width = FALSE) %>%
   add_footnote(
-    c("Reference group for dominant population group is 'Black African'.",
-      "Significance codes: *** p < 0.001, ** p < 0.01, * p < 0.05, . p < 0.1"),
+    c(
+      "Reference group for dominant population group is 'Black African'.",
+      "Significance codes: *** p < 0.001, ** p < 0.01, * p < 0.05, . p < 0.1"
+    ),
     notation = "none",
   ) %>%
   print() # Print the kable object
@@ -647,7 +688,7 @@ income_interval_labels_10pct_new_maps <- character(num_income_intervals_maps)
 
 for (i in 1:num_income_intervals_maps) {
   lower_bound <- round(income_breaks_unique_maps[i])
-  upper_bound <- round(income_breaks_unique_maps[i+1])
+  upper_bound <- round(income_breaks_unique_maps[i + 1])
   if (i == num_income_intervals_maps) {
     income_interval_labels_10pct_new_maps[i] <- paste0("R", lower_bound, "+")
   } else {
@@ -665,25 +706,25 @@ generate_and_save_map <- function(year, variable_name, map_title, data_source = 
   
   # Construct shapefile path for the current year
   current_shp_file <- paste0(shp_path_maps, year, "_ward_data.shp")
-  
+
   # Check if shapefile exists
   if (!file.exists(current_shp_file)) {
     warning(paste0("Shapefile not found for year ", year, ": ", current_shp_file, ". Skipping map for this year/variable."))
     return(NULL)
   }
-  
+
   # Load year-specific ward shapefile
   current_wards_sf <- read_sf(current_shp_file)
-  
+
   # Filter data for the current year
   current_data <- data_source %>% filter(year == .env$year)
-  
+
   # --- Data Preprocessing for Specific Map Types ---
   map_var_aes <- NULL # Placeholder for aesthetic mapping
-  scale_fn <- NULL    # Placeholder for scale function
-  legend_name <- ""   # Placeholder for legend title
-  
-  #Dominant population group
+  scale_fn <- NULL # Placeholder for scale function
+  legend_name <- "" # Placeholder for legend title
+
+  # Dominant population group
   if (variable_name == "dominent_p") {
     # Harmonize and set factor levels, including a 'No Data' level
     current_wards_sf <- current_wards_sf %>%
@@ -701,33 +742,33 @@ generate_and_save_map <- function(year, variable_name, map_title, data_source = 
     scale_fn <- scale_fill_manual(values = map_colors, na.translate = FALSE, name = "Dominant\nGroup")
     legend_name <- "Dominant Population Group"
     map_var_aes <- sym("map_var") # Use the new 'map_var' column
-  } 
-  
-  #Income bracket
+  }
+
+  # Income bracket
   else if (variable_name == "income_bracket") {
-    
     # Create income brackets from numerical 'income' using the dynamically generated breaks/labels
     current_wards_sf <- current_wards_sf %>%
       mutate(
-        map_var = cut(parse_number(avrage_inc), breaks = income_breaks_unique_maps, labels = income_interval_labels_10pct_new_maps,
-                      include.lowest = TRUE, right = FALSE)
+        map_var = cut(parse_number(avrage_inc),
+          breaks = income_breaks_unique_maps, labels = income_interval_labels_10pct_new_maps,
+          include.lowest = TRUE, right = FALSE
+        )
       )
-    
+
     # Handle NA values for income
     current_wards_sf <- current_wards_sf %>%
       mutate(
         map_var = if_else(is.na(map_var) & is.na(avrage_inc), factor("No Data", levels = c(levels(map_var), "No Data")), map_var)
       )
-   
+
     map_colors <- c(income_interval_colors_10pct_maps, "No Data" = "grey90")
     scale_fn <- scale_fill_manual(values = map_colors, na.translate = FALSE, name = "Average\nIncome")
     legend_name <- "Average Income Bracket"
     map_var_aes <- sym("map_var")
-  } 
-  
-  #Average access to water 
+  }
+
+  # Average access to water
   else if (variable_name == "avrage_ace") {
-    
     # Ensure it's a factor and handle NA
     current_wards_sf <- current_wards_sf %>%
       mutate(
@@ -738,16 +779,14 @@ generate_and_save_map <- function(year, variable_name, map_title, data_source = 
         map_var = factor(map_var, levels = c(levels(data_source$avrage_ace), "No Data"))
       )
     # Define custom colors if desired or use Brewer. Add 'No Data' color.
-    
-    message(max(3, length(levels(data_source$avrage_ace))))
-    access_palette <- brewer.pal(n = 4, name = "BuGn") 
+    access_palette <- brewer.pal(n = 4, name = "BuGn")
     map_colors <- c(access_palette, "No Data" = "grey90")
     scale_fn <- scale_fill_manual(values = map_colors, na.translate = FALSE, name = "Avg Water\nAccess")
     legend_name <- "Average Water Access"
     map_var_aes <- sym("map_var")
-  } 
-  
-  #Population dencity
+  }
+
+  # Population dencity
   else if (variable_name == "pop_density") {
     # Calculate population density (total_pop / area)
     current_wards_sf <- current_wards_sf %>%
@@ -757,38 +796,36 @@ generate_and_save_map <- function(year, variable_name, map_title, data_source = 
     scale_fn <- scale_fill_viridis_c(option = "heat", na.value = "grey80", name = "Pop. Density\n(per m\u00b2)")
     legend_name <- "Population Density"
     map_var_aes <- sym("map_var")
-  } 
   
-  #KL-divergence
+  }
+
+  # KL-divergence
   else if (variable_name == "kl_diverge") {
     current_wards_sf <- current_wards_sf %>% mutate(map_var = parse_number(.data[[variable_name]]))
     scale_fn <- scale_fill_viridis_c(option = "viridis", na.value = "grey80", name = "KL Divergence") # Different viridis option for diversity
     legend_name <- "Racial Diversity (KL Divergence)"
     map_var_aes <- sym("map_var")
-  } 
-  
-  #Water interruption frequency
+  }
+
+  # Water interruption frequency
   else if (variable_name == "interrupti") {
     current_wards_sf <- current_wards_sf %>% mutate(map_var = parse_number(.data[[variable_name]]))
     scale_fn <- scale_fill_viridis_c(option = "plasma", na.value = "grey80", name = "Interruption\nFrequency")
     legend_name <- "Water Interruption Frequency"
     map_var_aes <- sym("map_var")
-  } 
-  
-  #Distance over 200m
+  }
+
+  # Distance over 200m
   else if (variable_name == "dist_over_") {
     current_wards_sf <- current_wards_sf %>% mutate(map_var = parse_number(.data[[variable_name]]))
     scale_fn <- scale_fill_viridis_c(option = "turbo", na.value = "grey80", name = "Share >200m\nDistance") # Another viridis option
     legend_name <- "Share of Households >200m from Water"
     map_var_aes <- sym("map_var")
-  } 
-  
-  
-  else {
+  } else {
     warning(paste0("Unknown variable_name for mapping: ", variable_name, ". Skipping."))
     return(NULL)
   }
-  
+
   # --- Create the Plot ---
   p <- ggplot(current_wards_sf) +
     geom_sf(aes(fill = !!map_var_aes), color = "white", linewidth = 0.1) + # Ward borders
@@ -805,8 +842,8 @@ generate_and_save_map <- function(year, variable_name, map_title, data_source = 
       legend.text = element_text(size = 9),
       panel.grid.major = element_blank(),
       panel.grid.minor = element_blank(),
-      axis.text = element_blank(),        # Remove axis text (lat/lon)
-      axis.title = element_blank()        # Remove axis labels
+      axis.text = element_blank(), # Remove axis text (lat/lon)
+      axis.title = element_blank() # Remove axis labels
     ) +
     # Add Scale Bar
     ggspatial::annotation_scale(
@@ -821,12 +858,12 @@ generate_and_save_map <- function(year, variable_name, map_title, data_source = 
       pad_x = unit(0.5, "cm"), pad_y = unit(0.5, "cm"),
       style = ggspatial::north_arrow_fancy_orienteering(text_size = 8)
     )
-  
+
   # --- Save the Map ---
   output_filename <- paste0("Map_", year, "_", gsub(" ", "_", variable_name), ".png")
   ggsave(output_filename, p, width = 9, height = 8, dpi = 300)
   message(paste0("Map saved: ", output_filename))
-  
+
   return(p) # Return the plot object (optional)
 }
 
