@@ -1073,22 +1073,21 @@ generate_and_save_map <- function(
     # Calculate population density (total_pop / area)
     current_wards_sf <- current_wards_sf %>%
       mutate(
-        map_var = (as.numeric(total_pop) / (st_area(.) %>% as.numeric() * 10e-6)) # LOOKS WRONG
+        map_var = (as.numeric(total_pop) / (st_area(.) %>% as.numeric() * 10e-6))
       )
-    breaks <- classInt::classIntervals(
-      current_wards_sf$map_var,
-      n = 5,
-      style = "quantile"
-    )$brks # Use quantile breaks for better distribution
-      current_wards_sf <- current_wards_sf %>%
-      mutate(
-        map_var_bin = cut(
-          map_var,
-          breaks = breaks,
-          include.lowest = TRUE,
-          dig.lab=10
-        )
+    breaks <- c(0, 1, 3, 10, 30, 100, 300, 1000, 3000, Inf)
+    manual_colors <- rev(heat.colors(length(breaks) - 1))
+    labels <- c("<1", "1 - 3", "3 - 10", "10 - 30", "30 - 100", "100 - 300", "300 - 1000", "1000 - 3000", ">3000")
+    current_wards_sf <- current_wards_sf %>%
+    mutate(
+      map_var_bin = cut(
+        map_var,
+        breaks = breaks,
+        include.lowest = TRUE,
+        labels = labels,
+        dig.lab=10
       )
+    )
     scale_fn <- scale_fill_brewer(
       palette = "YlOrRd",
       na.value = "grey80",
