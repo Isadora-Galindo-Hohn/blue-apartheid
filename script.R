@@ -1,7 +1,6 @@
 #### PROBLEMS
-# 1. Divide no data income to unknown/respondent refused which is "NaN" in the code  and no data
-# 2. For shear of distance over 200 m I would like to divide it in 10% brackets
-# 3. Hard code color of population group, maybe
+# 1. Fix water interuptions
+# 2. Hard code color of population group, maybe
 
 # Load libraries
 library(tidyverse) # For data manipulation (dplyr, readr, purrr) and plotting (ggplot2)
@@ -31,7 +30,6 @@ years_distance <- c(2009, 2011, 2014, 2016)
 all_data <- map_dfr(years, function(y) {
   file <- paste0(data_path, "data_", y, ".csv")
   df <- read.csv2(file, fileEncoding = "latin1", stringsAsFactors = FALSE)
-  
 
   # Robust numeric conversion for all relevant columns
   df$avrage_income_bracket <- df$avrage_income_bracket %>%
@@ -1009,43 +1007,62 @@ generate_and_save_map <- function(
   } else if (variable_name == "income_bracket") {
     # Income bracket
     # Create income brackets from numerical 'income' using the dynamically generated breaks/labels
+    breaks = c(-3, -2, -1, 0, 200, 600, 1200, 2400, 4800, 9600, Inf)
+    labels = c(
+      "No Data",
+      "Respondent refused or did not know",
+      "No Income",
+      "R0 - R200",
+      "R200 - R600",
+      "R600 - R1200",
+      "R1200 - R2400",
+      "R2400 - R4800",
+      "R4800 - R9600",
+      "R9600+"
+    )
     current_wards_sf <- current_wards_sf %>%
       mutate(
-        map_var = cut(
-          parse_number(avrage_inc),
-          breaks = income_breaks_unique_maps,
-          labels = income_interval_labels_10pct_new_maps,
-          include.lowest = TRUE,
-          right = FALSE
-        )
+        map_var = case_when(
+          is.na(avrage_inc) ~ "No Data",
+          avrage_inc == "NaN" ~ "Respondent refused or did not know",
+          avrage_inc == 0 ~ "No Income",
+          TRUE ~
+            as.character(cut(
+              parse_number(avrage_inc),
+              breaks = breaks,
+              labels = labels,
+              include.lowest = TRUE,
+              right = FALSE
+            ))
+        ),
+        map_var = factor(map_var, levels = labels)
       )
 
-    # Handle NA values for income
-    current_wards_sf <- current_wards_sf %>%
-      mutate(
-        map_var = if_else(
-          is.na(map_var) & is.na(avrage_inc),
-          factor("No Data", levels = c(levels(map_var), "No Data")),
-          map_var
-        )
-      )
-
-    map_colors <- c(income_interval_colors_10pct_maps, "No Data" = "grey90")
+    map_colors <- setNames(
+      c("grey80", "red", get_greens_palette(length(labels) - 2)),
+      labels
+    )
     scale_fn <- scale_fill_manual(
       values = map_colors,
       na.translate = FALSE,
-      name = "Average\nIncome"
+      name = "Average\nIncome",
+      drop = TRUE
     )
     legend_name <- "Average Income Bracket"
     map_var_aes <- sym("map_var")
   } else if (variable_name == "avrage_ace") {
     # Average access to water
     # Ensure it's a factor and handle NA
-    labels <- c("Piped, into dwelling", "Piped, into yard only", "Street taps or standpipes", "Other")
+    labels <- c(
+      "Piped, into dwelling",
+      "Piped, into yard only",
+      "Street taps or standpipes",
+      "Other"
+    )
     manual_colors <- c("darkblue", "blue", "lightblue", "grey80")
     current_wards_sf <- current_wards_sf %>%
       mutate(
-        map_var = factor(current_wards_sf$avrage_ace, levels = labels)  # <- change "water_access" to your actual column name
+        map_var = factor(current_wards_sf$avrage_ace, levels = labels) # <- change "water_access" to your actual column name
       )
 
     # 3. Use scale_fill_gradientn with breaks and labels
@@ -1056,32 +1073,43 @@ generate_and_save_map <- function(
     )
 
     legend_name <- "Average Water Access"
-    map_var_aes <- sym("map_var")  # if using tidy evaluation
+    map_var_aes <- sym("map_var") # if using tidy evaluation
   } else if (variable_name == "pop_density") {
     # Population dencity
     # Calculate population density (total_pop / area)
     current_wards_sf <- current_wards_sf %>%
       mutate(
-        map_var = (as.numeric(total_pop) / (st_area(.) %>% as.numeric() * 10e-6))
+        map_var = (as.numeric(total_pop) /
+          (st_area(.) %>% as.numeric() * 10e-6))
       )
     breaks <- c(0, 1, 3, 10, 30, 100, 300, 1000, 3000, Inf)
     manual_colors <- rev(heat.colors(length(breaks) - 1))
-    labels <- c("<1", "1 - 3", "3 - 10", "10 - 30", "30 - 100", "100 - 300", "300 - 1000", "1000 - 3000", ">3000")
-    current_wards_sf <- current_wards_sf %>%
-    mutate(
-      map_var_bin = cut(
-        map_var,
-        breaks = breaks,
-        include.lowest = TRUE,
-        labels = labels,
-        dig.lab=10
-      )
+    labels <- c(
+      "<1",
+      "1 - 3",
+      "3 - 10",
+      "10 - 30",
+      "30 - 100",
+      "100 - 300",
+      "300 - 1000",
+      "1000 - 3000",
+      ">3000"
     )
+    current_wards_sf <- current_wards_sf %>%
+      mutate(
+        map_var_bin = cut(
+          map_var,
+          breaks = breaks,
+          include.lowest = TRUE,
+          labels = labels,
+          dig.lab = 10
+        )
+      )
     scale_fn <- scale_fill_brewer(
       palette = "YlOrRd",
       na.value = "grey80",
       name = "Pop. Density\n(per km\u00b2)",
-      drop=FALSE
+      drop = FALSE
     )
     legend_name <- "Population Density"
     map_var_aes <- sym("map_var_bin")
@@ -1104,7 +1132,7 @@ generate_and_save_map <- function(
       palette = "YlOrRd",
       na.value = "grey80",
       name = "Racial Diversity (KL Divergence)",
-      drop=FALSE
+      drop = FALSE
     )
     legend_name <- "Racial Diversity (KL Divergence)"
     map_var_aes <- sym("map_var")
@@ -1123,24 +1151,33 @@ generate_and_save_map <- function(
     # Distance over 200m
     breaks <- c(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1)
     labels <- c(
-      "0-10%", "10-20%", "20-30%", "30-40%", "40-50%",
-      "50-60%", "60-70%", "70-80%", "80-90%", "90-100%"
+      "0-10%",
+      "10-20%",
+      "20-30%",
+      "30-40%",
+      "40-50%",
+      "50-60%",
+      "60-70%",
+      "70-80%",
+      "80-90%",
+      "90-100%"
     )
     colors <- rev(heat.colors(length(breaks) - 1))
     current_wards_sf <- current_wards_sf %>%
-      mutate(map_var = cut(
+      mutate(
+        map_var = cut(
           parse_number(current_wards_sf$dist_over_),
           breaks = breaks,
           labels = labels,
           include.lowest = TRUE,
           right = FALSE
         )
-    )
+      )
     scale_fn <- scale_fill_brewer(
       palette = "YlOrRd",
       na.value = "grey80",
       name = "Share >200m\nDistance",
-      drop=TRUE
+      drop = TRUE
     )
     legend_name <- "Share of Households >200m from Water"
     map_var_aes <- sym("map_var")
