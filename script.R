@@ -1131,10 +1131,10 @@ generate_and_save_map <- function(
     scale_fn <- scale_fill_brewer(
       palette = "YlOrRd",
       na.value = "grey80",
-      name = "Racial Diversity (KL Divergence)",
+      name = "Racial Segregation (KL Divergence)",
       drop = FALSE
     )
-    legend_name <- "Racial Diversity (KL Divergence)"
+    legend_name <- "Racial Segregation (KL Divergence)"
     map_var_aes <- sym("map_var")
   } else if (variable_name == "interrupti") {
     # Water interruption frequency
@@ -1253,7 +1253,11 @@ for (year in years) {
 # 3. KL Divergence Maps
 message("\n--- Generating KL Divergence Maps ---")
 for (year in years) {
-  generate_and_save_map(year, "kl_diverge", "Racial Diversity (KL Divergence)")
+  generate_and_save_map(
+    year,
+    "kl_diverge",
+    "Racial Segregation (KL Divergence)"
+  )
 }
 
 # 4. Average Water Access Maps
