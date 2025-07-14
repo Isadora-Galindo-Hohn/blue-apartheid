@@ -1137,13 +1137,49 @@ generate_and_save_map <- function(
     legend_name <- "Racial Segregation (KL Divergence)"
     map_var_aes <- sym("map_var")
   } else if (variable_name == "interrupti") {
+    breaks <- c(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1)
+    labels <- c(
+      "0-10%",
+      "10-20%",
+      "20-30%",
+      "30-40%",
+      "40-50%",
+      "50-60%",
+      "60-70%",
+      "70-80%",
+      "80-90%",
+      "90-100%"
+    )
+    labels_with_no_data = c(labels, "No Data")
     # Water interruption frequency
     current_wards_sf <- current_wards_sf %>%
-      mutate(map_var = parse_number(.data[[variable_name]]))
-    scale_fn <- scale_fill_viridis_c(
-      option = "plasma",
+      mutate(
+        # Step 1: cut() for numeric bins only
+        map_var = cut(
+          parse_number(avrage_inc),
+          breaks = breaks,
+          labels = labels,
+          include.lowest = TRUE,
+          right = FALSE,
+          limit = labels_with_no_data
+        ),
+        map_var = factor(map_var, levels = labels_with_no_data)
+        # # Step 2: Assign "No Data" for NA values
+        # map_var = ifelse(is.na(map_var), "No Data", as.character(map_var)),
+        # # Step 3: Make it a factor with all levels
+        # map_var = factor(map_var, levels = c(labels, "No Data"))
+      )
+    library(RColorBrewer)
+    base_colors <- brewer.pal(9, "YlOrRd")
+    extra_color <- colorRampPalette(c(base_colors[9], "#4d0000"))(2)[2] # Create a deeper red
+    map_colors <- c(base_colors, extra_color, "No Data" = "gray80")
+    names(map_colors) <- labels
+    scale_fn <- scale_fill_manual(
+      values = map_colors,
       na.value = "grey80",
-      name = "Interruption\nFrequency"
+      name = "Interruption\nFrequency",
+      drop = FALSE,
+      limits = labels
     )
     legend_name <- "Water Interruption Frequency"
     map_var_aes <- sym("map_var")
@@ -1162,7 +1198,6 @@ generate_and_save_map <- function(
       "80-90%",
       "90-100%"
     )
-    colors <- rev(heat.colors(length(breaks) - 1))
     current_wards_sf <- current_wards_sf %>%
       mutate(
         map_var = cut(
