@@ -15,6 +15,7 @@ library(ggplot2) # For plotting
 library(dplyr) # For data manipulation
 library(viridis) # For nice color palettes (e.g., for continuous data)
 library(purrr)
+library(RColorBrewer)
 
 # Set working directory and data path
 setwd(".")
@@ -1059,10 +1060,10 @@ generate_and_save_map <- function(
       "Street taps or standpipes",
       "Other"
     )
-    manual_colors <- c("darkblue", "blue", "lightblue", "grey80")
+    manual_colors <- c("darkblue", "blue", "lightblue", "grey50")
     current_wards_sf <- current_wards_sf %>%
       mutate(
-        map_var = factor(current_wards_sf$avrage_ace, levels = labels) # <- change "water_access" to your actual column name
+        map_var = factor(current_wards_sf$avrage_ace, levels = labels)
       )
 
     # 3. Use scale_fill_gradientn with breaks and labels
@@ -1137,7 +1138,8 @@ generate_and_save_map <- function(
     legend_name <- "Racial Segregation (KL Divergence)"
     map_var_aes <- sym("map_var")
   } else if (variable_name == "interrupti") {
-    breaks <- c(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1)
+    # Water interruption frequency
+    breaks <- c(-1, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, Inf)
     labels <- c(
       "0-10%",
       "10-20%",
@@ -1151,31 +1153,29 @@ generate_and_save_map <- function(
       "90-100%"
     )
     labels_with_no_data = c(labels, "No Data")
-    # Water interruption frequency
     current_wards_sf <- current_wards_sf %>%
       mutate(
         # Step 1: cut() for numeric bins only
         map_var = cut(
-          parse_number(avrage_inc),
+          parse_number(current_wards_sf$interrupti),
           breaks = breaks,
           labels = labels,
           include.lowest = TRUE,
           right = FALSE,
           limit = labels_with_no_data
         ),
-        map_var = factor(map_var, levels = labels_with_no_data)
+        map_var = factor(map_var, levels = labels_with_no_data),
         # # Step 2: Assign "No Data" for NA values
         # map_var = ifelse(is.na(map_var), "No Data", as.character(map_var)),
         # # Step 3: Make it a factor with all levels
         # map_var = factor(map_var, levels = c(labels, "No Data"))
       )
-    library(RColorBrewer)
     base_colors <- brewer.pal(9, "YlOrRd")
     extra_color <- colorRampPalette(c(base_colors[9], "#4d0000"))(2)[2] # Create a deeper red
     map_colors <- c(base_colors, extra_color, "No Data" = "gray80")
-    names(map_colors) <- labels
+    # names(map_colors) <- labels
     scale_fn <- scale_fill_manual(
-      values = map_colors,
+      values = setNames(map_colors, labels_with_no_data),
       na.value = "grey80",
       name = "Interruption\nFrequency",
       drop = FALSE,
