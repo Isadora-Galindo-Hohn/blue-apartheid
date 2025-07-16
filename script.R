@@ -18,7 +18,7 @@ library(purrr)
 library(RColorBrewer)
 
 source("helpers.R")
-sourse("maps.R")
+source("maps.R")
 
 # Set working directory and data path
 setwd(".")
@@ -826,8 +826,6 @@ message("Table 2 saved as 'Table 2 - Distance Coefficients.xlsx'")
 ## Mapping
 
 # Path to your shapefiles
-shp_path_maps <- "../QGIS/"
-
 
 # Define income brackets and their labels for the map legend (using dynamically created ones from Plot 14 logic)
 # These are derived directly from your clean_data for consistency.
