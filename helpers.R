@@ -1,8 +1,8 @@
-check_shapefile <- function(filename) {
+check_file <- function(filename) {
   # Check if shapefile exists
   if (!file.exists(municipality_shp_file)) {
     warning(paste0(
-      "Shapefile not found for",
+      "File not found for",
       filename,
       ": ",
       "Skipping map for this year/variable."

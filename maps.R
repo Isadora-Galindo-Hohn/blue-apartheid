@@ -5,13 +5,21 @@ generate_and_save_map <- function(
   map_title,
   data_source = clean_data
 ) {
+  shp_path_maps <- "../QGIS/"
   # Construct shapefile path for the current year
-  current_shp_file <- check_shapefile(paste0(
+  current_shp_file <- check_file(paste0(
     shp_path_maps,
     year,
     "_ward_data.shp"
   ))
-  if (is.null(current_shp_file)) {
+  # Construct shapefile path for the current year
+  municipality_shp_file <- check_file(paste0(
+    shp_path_maps,
+    "M",
+    year,
+    ".gdtable"
+  ))
+  if (is.null(current_shp_file) || is.null(municipality_shp_file)) {
     return(NULL)
   }
   # Construct shapefile path for the current year
