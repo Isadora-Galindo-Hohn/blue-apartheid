@@ -1,3 +1,4 @@
+source("constants.R")
 # --- Map Generation Function ---
 generate_and_save_map <- function(
   year,

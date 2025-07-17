@@ -19,6 +19,7 @@ library(RColorBrewer)
 
 source("helpers.R")
 source("maps.R")
+source("constants.R")
 
 # Set working directory and data path
 setwd(".")
@@ -106,16 +107,6 @@ income_labels_text <- c(
 
 # Calculate the log of these midpoints to use as breaks on the log-transformed axis
 log_income_breaks <- log(income_midpoints_numeric)
-
-# --- Define a consistent color palette for dominent_pop_group ---
-# Ensure all possible levels are included. You can customize these colors.
-group_colors <- c(
-  "Black African" = "#E41A1C", # Red
-  "Coloured" = "#377EB8", # Blue
-  "Indian/Asian" = "#4DAF4A", # Green (now covers both variations)
-  "White" = "#FF7F00", # Orange
-  "Other" = "#984EA3" # Purple
-)
 
 # --- Define color palettes for the new 10% interval categories ---
 # Define 10% breaks for categorization (0 to 1, step 0.1)
