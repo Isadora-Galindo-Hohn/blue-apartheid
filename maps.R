@@ -1,3 +1,5 @@
+library(ggplot2)
+library(sf)
 source("constants.R")
 # --- Map Generation Function ---
 generate_and_save_map <- function(
@@ -14,33 +16,31 @@ generate_and_save_map <- function(
     "_ward_data.shp"
   ))
   # Construct shapefile path for the current year
+  # TODO: Don't hardcode manicipality shapefile name
   municipality_shp_file <- check_file(paste0(
     shp_path_maps,
-    "M",
-    year,
-    ".gdtable"
+    "a00000009",
+    ".gdbtable"
   ))
   if (is.null(current_shp_file) || is.null(municipality_shp_file)) {
+    paste0(
+      "Shapefile for year ",
+      year,
+      " or municipality shapefile not found. Skipping map generation."
+    )
+    message("Current shapefile: ", current_shp_file)
+    message("Municipality shapefile: ", municipality_shp_file)
     return(NULL)
   }
-  # Construct shapefile path for the current year
-  # municipality_shp_file <- check_shapefile(paste0(
-  #   shp_path_maps,
-  #   year,
-  #   "_manicipality.shp"
-  # ))
-  # if (is.null(municipality_shp_file)) {
-  #   return(NULL)
-  # }
 
   # Load year-specific ward shapefile
   current_wards_sf <- read_sf(current_shp_file)
-  # municipality_sf <- read_sf(municipality_shp_file)
+  municipality_sf <- read_sf(municipality_shp_file)
 
   # Shapefile includes manicupalities for whole south africa
   # Filter for gauteng
-  # gauteng_municipalities_sf <- municipality_sf %>%
-  #   filter(PROVINCE_CODE == "GT")
+  municipality_sf <- municipality_sf %>%
+    filter(ProvinceCode == "GT")
 
   # Filter data for the current year
   current_data <- data_source %>% filter(year == .env$year)
@@ -292,15 +292,48 @@ generate_and_save_map <- function(
     return(NULL)
   }
 
+  municipality_plot <- ggplot() +
+    geom_sf(data = municipality_sf, fill = NA, color = "red", linewidth = 1) +
+    ggtitle("Municipality Borders Only")
+  ggsave(
+    "municipality_borders_debug.png",
+    plot = municipality_plot,
+    width = 8,
+    height = 6
+  )
+
+  test_plot <- ggplot(mtcars, aes(mpg, wt)) + geom_point()
+  ggsave("/tmp/test_plot.png", plot = test_plot)
+  message("ggsave finished")
+
   # --- Create the Plot --- p <- ggplot(current_wards_sf) +
-  geom_sf(aes(fill = !!map_var_aes), color = "white", linewidth = 0.1) + # Ward borders
+  # Decide the first layer
+  if (!is.null(map_var_aes) && is.symbol(map_var_aes)) {
+    ward_layer <- geom_sf(
+      data = current_wards_sf,
+      aes(fill = !!map_var_aes),
+      color = "white",
+      linewidth = 0.1
+    )
+  } else {
+    ward_layer <- geom_sf(
+      data = current_wards_sf,
+      color = "white",
+      linewidth = 0.1
+    )
+  }
+
+  # Build the plot
+
+  p <- ggplot() +
+    ward_layer +
     geom_sf(
       data = municipality_sf,
       fill = NA,
       color = "black",
       linewidth = 0.7
-    ) + # Municipality borders
-    scale_fn + # Apply the specific scale function
+    ) +
+    scale_fn +
     labs(
       title = paste0(map_title, " (", year, ")"),
       caption = "Source: Your Study Data"
@@ -331,7 +364,6 @@ generate_and_save_map <- function(
       pad_y = unit(0.5, "cm"),
       style = ggspatial::north_arrow_fancy_orienteering(text_size = 8)
     )
-
   # --- Save the Map ---
   output_filename <- file.path(
     OUTPUT_DIR,
