@@ -883,6 +883,6 @@ map_specs <- list(
 for (spec in map_specs) {
   message(paste0("\n--- Generating ", spec$title, " Maps ---"))
   for (year in spec$years) {
-    generate_and_save_map(year, spec$var, spec$title)
+    generate_and_save_map(year, spec$var, spec$title, clean_data)
   }
 }
