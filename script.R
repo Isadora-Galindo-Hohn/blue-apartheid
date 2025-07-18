@@ -28,7 +28,7 @@ years <- c(2009, 2011, 2014, 2016, 2018, 2022, 2024)
 
 # Define years for each dependent variable upfront
 years_interrupt <- c(2018, 2022, 2024)
-years_distance <- c(2009, 2011, 2014, 2016)
+years_distance <- c(2009, 2011, 2014, 2016, 2018)
 
 
 # Load and preprocess all yearly data files
