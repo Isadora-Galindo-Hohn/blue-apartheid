@@ -859,7 +859,11 @@ names(
 # --- Generate All Maps ---
 
 map_specs <- list(
-  list(years = years, var = "dominent_p", title = "Dominant Population Group"),
+  list(
+    years = years,
+    var = "dominent_p",
+    title = "Dominant Population Group"
+  ),
   list(years = years, var = "income_bracket", title = "Average Income Bracket"),
   list(
     years = years,
