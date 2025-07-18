@@ -47,7 +47,7 @@ all_data <- all_data %>%
     dominent_pop_group = fct_drop(as.factor(dominent_pop_group)), # Convert to factor, drop unused levels
     average_access_to_water = fct_drop(as.factor(avrage_acess_to_water)),
     income = as.numeric(avrage_income_bracket),
-    kl_divergence = as.numeric(kl_divergence),
+    non_white = as.numeric(non_white),
     dist_over_200 = as.numeric(dist_over_200),
     interruption_freq = as.numeric(interruption_freq),
     total_pop = as.numeric(total_pop)
@@ -58,7 +58,7 @@ all_data <- all_data %>%
     year,
     dominent_pop_group,
     income,
-    kl_divergence,
+    non_white,
     average_access_to_water,
     dist_over_200,
     interruption_freq,
@@ -71,7 +71,7 @@ clean_data <- all_data %>%
     !is.na(income),
     income > 0, # Exclude zero/negative income for log transformation (log(0) is undefined)
     !is.na(dominent_pop_group),
-    !is.na(kl_divergence),
+    !is.na(non_white),
     !is.na(dist_over_200) | !is.na(interruption_freq) # Keep rows if at least one dependent var is available
   )
 
@@ -612,7 +612,7 @@ summary_distance <- summary_distance %>%
 # Define the desired order for factor levels for 'plot_term' globally
 desired_plot_term_levels <- c(
   "log(income)",
-  "kl_divergence",
+  "non_white",
   "Coloured",
   "Indian/Asian",
   "White",
@@ -641,7 +641,7 @@ cat("---\n")
 # Define a combined palette that ensures all needed colors are together and explicitly listed.
 combined_plot_colors <- c(
   "log(income)" = "black",
-  "kl_divergence" = "darkgreen",
+  "non_white" = "darkgreen",
   "Black African" = "#E41A1C", # Red
   "Coloured" = "#377EB8", # Blue
   "Indian/Asian" = "#4DAF4A", # Green (now covers both variations)
@@ -706,7 +706,7 @@ ggsave(
 # This ensures consistent row order in your tables
 desired_plot_term_levels <- c(
   "log(income)",
-  "kl_divergence",
+  "non_white",
   "Coloured",
   "Indian/Asian",
   "White",
@@ -863,8 +863,8 @@ map_specs <- list(
   list(years = years, var = "income_bracket", title = "Average Income Bracket"),
   list(
     years = years,
-    var = "kl_diverge",
-    title = "Racial Segregation (KL Divergence)"
+    var = "non_white",
+    title = "Non white population share"
   ),
   list(years = years, var = "avrage_ace", title = "Average Water Access"),
   list(

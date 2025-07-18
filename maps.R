@@ -8,6 +8,7 @@ generate_and_save_map <- function(
   map_title,
   data_source = clean_data
 ) {
+  message("Generating map for year: ", year, " and variable: ", variable_name)
   shp_path_maps <- "../QGIS/"
   # Construct shapefile path for the current year
   current_shp_file <- check_file(paste0(
@@ -181,15 +182,17 @@ generate_and_save_map <- function(
     )
     legend_name <- "Population Density"
     map_var_aes <- sym("map_var_bin")
-  } else if (variable_name == "kl_diverge") {
+  } else if (variable_name == "non_white") {
     breaks <- c(0, 0.5, 1, 1.5, 2, 100)
     labels <- c("Very low", "Low", "Moderate", "High", "Very high")
     colors <- rev(heat.colors(length(breaks) - 1))
+    message("Creating map for non_white variable")
+    message(names(current_wards_sf))
     # KL-divergence
     current_wards_sf <- current_wards_sf %>%
       mutate(
         map_var = cut(
-          parse_number(.data[[variable_name]]),
+          parse_number(current_wards_sf$non_white),
           breaks = breaks,
           labels = labels,
           include.lowest = TRUE,
