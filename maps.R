@@ -2,6 +2,77 @@ library(ggplot2)
 library(sf)
 source("constants.R")
 # --- Map Generation Function ---
+
+get_ward_filename <- function(year) {
+  # Define the path to the shapefiles
+  shp_path_maps <- "../shp/"
+  current_shp_file <- NULL
+  if (year == 2014) {
+    year <- 2011
+  }
+  if (year == 2018) {
+    year <- 2016
+  }
+  if (year == 2024) {
+    year <- 2020
+  }
+  if (year == 2020) {
+    # For 2020, use the specific shapefile
+    current_shp_file <- paste0(shp_path_maps, "2020/MDBWard2020.gdb")
+  } else {
+    # For other years, construct the path dynamically
+    current_shp_file <- paste0(
+      shp_path_maps,
+      year,
+      "/MDBWard",
+      year,
+      ".gdb/",
+      "a00000009.gdbtable"
+    )
+  }
+  return(current_shp_file)
+}
+
+get_municipality_filename <- function(year) {
+  # Define the path to the shapefiles
+  shp_path_maps <- "../shp/"
+  current_shp_file <- NULL
+  if (year == 2014) {
+    year <- 2011
+  }
+  if (year == 2020 || year == 2024) {
+    year <- 2018
+  }
+  if (year == 2018) {
+    # For 2018 and 2020, use the specific shapefile
+    manicipality_shp_file <- paste0(
+      shp_path_maps,
+      "2018/M/MDB_Local_Municipal_Boundary_2018.shp"
+    )
+  } else {
+    # For other years, construct the path dynamically
+    manicipality_shp_file <- paste0(
+      shp_path_maps,
+      year,
+      "/MDBLocalMunicipalBoundary",
+      year,
+      ".gdb/",
+      "a00000009.gdbtable"
+    )
+  }
+  message("Municipality ", manicipality_shp_file)
+  return(manicipality_shp_file)
+}
+
+get_shape_files <- function(year) {
+  current_shp_file <- check_file(get_ward_filename(year))
+  municipality_shp_file <- check_file(get_municipality_filename(year))
+  return(list(
+    current_shp_file = current_shp_file,
+    municipality_shp_file = municipality_shp_file
+  ))
+}
+
 generate_and_save_map <- function(
   year,
   variable_name,
@@ -11,24 +82,15 @@ generate_and_save_map <- function(
   message("Generating map for year: ", year, " and variable: ", variable_name)
   shp_path_maps <- "../QGIS/"
   # Construct shapefile path for the current year
-  current_shp_file <- check_file(paste0(
-    shp_path_maps,
-    year,
-    "_ward_data.shp"
-  ))
-  # Construct shapefile path for the current year
-  # TODO: Don't hardcode manicipality shapefile name
-  municipality_shp_file <- check_file(paste0(
-    shp_path_maps,
-    "a00000009",
-    ".gdbtable"
-  ))
+  shape_files <- get_shape_files(year)
+  current_shp_file <- shape_files$current_shp_file
+  municipality_shp_file <- shape_files$municipality_shp_file
   if (is.null(current_shp_file) || is.null(municipality_shp_file)) {
-    paste0(
+    message(paste0(
       "Shapefile for year ",
       year,
       " or municipality shapefile not found. Skipping map generation."
-    )
+    ))
     message("Current shapefile: ", current_shp_file)
     message("Municipality shapefile: ", municipality_shp_file)
     return(NULL)
