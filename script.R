@@ -1,6 +1,10 @@
 #### PROBLEMS
 # 1. Fix water interuptions
 # 2. Hard code color of population group, maybe
+# 1. Fig of % of dominant group for each year
+# 2. Callculate how many wards follow distrubution of province
+# 3. Calculate how big (%) the dominant population group is 
+# 4. Calculate for each year how many % of wards have larger than 95% dominant 
 
 # Load libraries
 library(tidyverse) # For data manipulation (dplyr, readr, purrr) and plotting (ggplot2)
@@ -16,6 +20,8 @@ library(dplyr) # For data manipulation
 library(viridis) # For nice color palettes (e.g., for continuous data)
 library(purrr)
 library(RColorBrewer)
+library(ggplot2)
+library(patchwork)
 
 source("helpers.R")
 source("maps.R")
@@ -48,6 +54,8 @@ all_data <- all_data %>%
     average_access_to_water = fct_drop(as.factor(avrage_acess_to_water)),
     income = as.numeric(avrage_income_bracket),
     non_white = as.numeric(non_white),
+    share_dom = as.numeric(share_dom),
+    equal_distru = fct_drop(as.factor(equal_distru)),
     dist_over_200 = as.numeric(dist_over_200),
     interruption_freq = as.numeric(interruption_freq),
     total_pop = as.numeric(total_pop)
@@ -137,26 +145,129 @@ if (!dir.exists(OUTPUT_DIR)) {
   dir.create(OUTPUT_DIR)
 }
 # Plot 1: Income Distribution by Dominant Population Group (across all years)
-ggplot(clean_data, aes(x = log(income), fill = dominent_pop_group)) +
-  geom_density(alpha = 0.6) +
-  labs(
-    title = "Distribution of Income by Dominant Population Group",
-    x = "Average Monthly Household Income", # Label reflects the original scale
-    y = "Density",
-    fill = "Dominant Group"
-  ) +
-  theme_minimal(base_size = 13) +
-  theme(legend.position = "bottom") +
-  scale_x_continuous(breaks = log_income_breaks, labels = income_labels_text) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  scale_fill_manual(values = group_colors) # Apply consistent fill colors
-ggsave(
-  file.path(OUTPUT_DIR, "Plot 1 - income_distribution_by_group.png"),
-  width = 10,
-  height = 6
-)
+for (yr in years) {
+  yearly_data <- clean_data %>% filter(year == yr, !is.na(income), !is.na(dominent_pop_group))
+  
+  if (nrow(yearly_data) > 0) {
+    p <- ggplot(yearly_data, aes(x = log(income), fill = dominent_pop_group)) +
+      geom_density(alpha = 0.6) +
+      labs(
+        title = paste("Distribution of Income by Dominant Population Group -", yr),
+        x = "Average Monthly Household Income (log scale)",
+        y = "Density",
+        fill = "Dominant Group"
+      ) +
+      theme_minimal(base_size = 13) +
+      theme(
+        legend.position = "bottom",
+        axis.text.x = element_text(angle = 45, hjust = 1)
+      ) +
+      scale_x_continuous(breaks = log_income_breaks, labels = income_labels_text) +
+      scale_fill_manual(values = group_colors)
+    
+    ggsave(
+      filename = file.path(OUTPUT_DIR, paste0("Plot 1 - income_distribution_", yr, ".png")),
+      plot = p,
+      width = 10,
+      height = 6
+    )
+  } else {
+    message(paste("Skipping year", yr, "– no valid data"))
+  }
+}
 
-# --- NEW: RELATIONAL PLOTS (Similar to Venter et al. Fig. 3 & 4) ---
+# Create one plot per year
+income_plots_by_year <- lapply(years, function(y) {
+  df_year <- clean_data %>% filter(year == y)
+  
+  ggplot(df_year, aes(x = log(income), fill = dominent_pop_group)) +
+    geom_density(alpha = 0.6) +
+    labs(
+      title = paste("Income Distribution -", y),
+      x = "Log(Monthly Household Income)",
+      y = "Density",
+      fill = "Dominant Group"
+    ) +
+    theme_minimal(base_size = 11) +
+    scale_fill_manual(values = group_colors) +
+    theme(legend.position = "none") # Turn on only for one final plot if needed
+})
+
+income_stats <- clean_data %>%
+  filter(!is.na(income)) %>%
+  group_by(year, dominent_pop_group) %>%
+  summarise(
+    mean_income = mean(income, na.rm = TRUE),
+    sd_income = sd(income, na.rm = TRUE),
+    n = n()
+  ) %>%
+  arrange(year, dominent_pop_group)
+
+income_summary_table <- clean_data %>%
+  filter(!is.na(income)) %>%
+  group_by(year, dominent_pop_group) %>%
+  summarise(
+    `Mean Income` = round(mean(income), 0),
+    `SD Income` = round(sd(income), 0),
+    `N Wards` = n(),
+    .groups = "drop"
+  ) %>%
+  arrange(year, dominent_pop_group) %>%
+  pivot_wider(
+    names_from = year,
+    values_from = c(`Mean Income`, `SD Income`, `N Wards`),
+    names_glue = "{year}_{.value}"
+  )
+
+kable(income_summary_table, caption = "Table X: Mean and SD of Monthly Household Income by Dominant Group and Year") %>%
+  kable_styling(full_width = FALSE)
+
+
+# Combine into one figure using patchwork
+combined_income_plot <- wrap_plots(income_plots_by_year, ncol = 2) +
+  plot_annotation(title = "Income Distribution by Dominant Group (2009–2024)")
+
+ggsave("output/combined_income_distribution_by_year.png", combined_income_plot, width = 14, height = 10)
+
+refusal_share <- clean_data %>%
+  mutate(refused = is.na(income)) %>%
+  group_by(year, dominent_pop_group) %>%
+  summarise(
+    refused_n = sum(refused),
+    total = n(),
+    refusal_rate = refused_n / total
+  )
+
+ggplot(refusal_share, aes(x = dominent_pop_group, y = refusal_rate, fill = dominent_pop_group)) +
+  geom_col() +
+  facet_wrap(~year) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+  labs(
+    title = "Share of Wards with Refused Income Responses by Dominant Group",
+    x = "Dominant Group",
+    y = "Refusal Rate"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_fill_manual(values = group_colors)
+
+ggsave("output/refusal_rate_income_by_group_year.png", width = 12, height = 8)
+
+ggplot(clean_data, aes(x = share_dom, fill = dominent_pop_group)) +
+  geom_histogram(binwidth = 0.05, alpha = 0.7, position = "identity") +
+  facet_wrap(~year, scales = "free_y") +
+  labs(
+    title = "Distribution of Share of Dominant Group in Wards",
+    x = "Share of Dominant Population in Ward",
+    y = "Count of Wards"
+  ) +
+  scale_x_continuous(labels = scales::percent_format(accuracy = 1)) +
+  scale_fill_manual(values = group_colors) +
+  theme_minimal(base_size = 12)
+
+ggsave("output/share_dom_distribution_by_year.png", width = 14, height = 10)
+
+# --- RELATIONAL PLOTS ---
 
 # Plot 2: Share of Distance >200m vs. Log(Income) by Dominant Group (for a representative year, e.g., 2011)
 year_for_distance_plot <- 2011 # Or pick another year from years_distance
@@ -254,7 +365,6 @@ if (nrow(plot_data_interrupt) > 0) {
   ))
 }
 
-# --- NEW: TRAJECTORY PLOTS (Similar to Venter et al. Fig. 8A) ---
 
 # Prepare data for interruption frequency trajectories by dominant group
 interruption_trajectories <- clean_data %>%
