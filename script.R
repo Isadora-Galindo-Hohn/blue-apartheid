@@ -3,8 +3,8 @@
 # 2. Hard code color of population group, maybe
 # 1. Fig of % of dominant group for each year
 # 2. Callculate how many wards follow distrubution of province
-# 3. Calculate how big (%) the dominant population group is 
-# 4. Calculate for each year how many % of wards have larger than 95% dominant 
+# 3. Calculate how big (%) the dominant population group is
+# 4. Calculate for each year how many % of wards have larger than 95% dominant
 
 # Load libraries
 library(tidyverse) # For data manipulation (dplyr, readr, purrr) and plotting (ggplot2)
@@ -148,13 +148,17 @@ if (!dir.exists(OUTPUT_DIR)) {
 }
 # Plot 1: Income Distribution by Dominant Population Group (across all years)
 for (yr in years) {
-  yearly_data <- clean_data %>% filter(year == yr, !is.na(income), !is.na(dominent_pop_group))
-  
+  yearly_data <- clean_data %>%
+    filter(year == yr, !is.na(income), !is.na(dominent_pop_group))
+
   if (nrow(yearly_data) > 0) {
     p <- ggplot(yearly_data, aes(x = log(income), fill = dominent_pop_group)) +
       geom_density(alpha = 0.6) +
       labs(
-        title = paste("Distribution of Income by Dominant Population Group -", yr),
+        title = paste(
+          "Distribution of Income by Dominant Population Group -",
+          yr
+        ),
         x = "Average Monthly Household Income (log scale)",
         y = "Density",
         fill = "Dominant Group"
@@ -164,11 +168,17 @@ for (yr in years) {
         legend.position = "bottom",
         axis.text.x = element_text(angle = 45, hjust = 1)
       ) +
-      scale_x_continuous(breaks = log_income_breaks, labels = income_labels_text) +
+      scale_x_continuous(
+        breaks = log_income_breaks,
+        labels = income_labels_text
+      ) +
       scale_fill_manual(values = group_colors)
-    
+
     ggsave(
-      filename = file.path(OUTPUT_DIR, paste0("Plot 1 - income_distribution_", yr, ".png")),
+      filename = file.path(
+        OUTPUT_DIR,
+        paste0("Plot 1 - income_distribution_", yr, ".png")
+      ),
       plot = p,
       width = 10,
       height = 6
@@ -181,7 +191,7 @@ for (yr in years) {
 # Create one plot per year
 income_plots_by_year <- lapply(years, function(y) {
   df_year <- clean_data %>% filter(year == y)
-  
+
   ggplot(df_year, aes(x = log(income), fill = dominent_pop_group)) +
     geom_density(alpha = 0.6) +
     labs(
@@ -225,14 +235,22 @@ income_summary_table <- clean_data %>%
   )
 
 # Render
-kable(income_summary_table, caption = "Table X: Income (Mean ± SD) and Ward Count by Dominant Group and Year") %>%
+kable(
+  income_summary_table,
+  caption = "Table X: Income (Mean ± SD) and Ward Count by Dominant Group and Year"
+) %>%
   kable_styling(full_width = FALSE)
 
 # Combine into one figure using patchwork
 combined_income_plot <- wrap_plots(income_plots_by_year, ncol = 2) +
   plot_annotation(title = "Income Distribution by Dominant Group (2009–2024)")
 
-ggsave("output/combined_income_distribution_by_year.png", combined_income_plot, width = 14, height = 10)
+ggsave(
+  "output/combined_income_distribution_by_year.png",
+  combined_income_plot,
+  width = 14,
+  height = 10
+)
 
 refusal_share <- clean_data %>%
   mutate(refused = is.na(income)) %>%
@@ -243,7 +261,10 @@ refusal_share <- clean_data %>%
     refusal_rate = refused_n / total
   )
 
-ggplot(refusal_share, aes(x = dominent_pop_group, y = refusal_rate, fill = dominent_pop_group)) +
+ggplot(
+  refusal_share,
+  aes(x = dominent_pop_group, y = refusal_rate, fill = dominent_pop_group)
+) +
   geom_col() +
   facet_wrap(~year) +
   scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
