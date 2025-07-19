@@ -6,31 +6,7 @@ source("constants.R")
 get_ward_filename <- function(year) {
   # Define the path to the shapefiles
   shp_path_maps <- "../shp/"
-  current_shp_file <- NULL
-  if (year == 2014) {
-    year <- 2011
-  }
-  if (year == 2018) {
-    year <- 2016
-  }
-  if (year == 2024) {
-    year <- 2020
-  }
-  if (year == 2020) {
-    # For 2020, use the specific shapefile
-    current_shp_file <- paste0(shp_path_maps, "2020/MDBWard2020.gdb")
-  } else {
-    # For other years, construct the path dynamically
-    current_shp_file <- paste0(
-      shp_path_maps,
-      year,
-      "/MDBWard",
-      year,
-      ".gdb/",
-      "a00000009.gdbtable"
-    )
-  }
-  return(current_shp_file)
+  return(paste0(shp_path_maps, year, "/wards.shp"))
 }
 
 get_municipality_filename <- function(year) {
@@ -105,8 +81,12 @@ generate_and_save_map <- function(
   municipality_sf <- municipality_sf %>%
     filter(ProvinceCode == "GT")
 
-  # Filter data for the current year
   current_data <- data_source %>% filter(year == .env$year)
+  current_wards_sf$avrage_inc <- as.integer(current_wards_sf$avrage_inc)
+  current_wards_sf$non_white <- as.integer(current_wards_sf$non_white)
+  current_wards_sf$dist_over_ <- as.integer(current_wards_sf$dist_over_)
+  current_wards_sf$interrupti <- as.integer(current_wards_sf$interrupti)
+  current_wards_sf$total_pop <- as.integer(current_wards_sf$total_pop)
 
   # --- Data Preprocessing for Specific Map Types ---
   map_var_aes <- NULL # Placeholder for aesthetic mapping
@@ -135,7 +115,7 @@ generate_and_save_map <- function(
     )
     legend_name <- "Dominant Population Group"
     map_var_aes <- sym("map_var") # Use the new 'map_var' column
-  } else if (variable_name == "income_bracket") {
+  } else if (variable_name == "avrage_income_bracket") {
     # Income bracket
     # Create income brackets from numerical 'income' using the dynamically generated breaks/labels
     breaks = c(-3, -2, -1, 0, 200, 600, 1200, 2400, 4800, 9600, Inf)
@@ -154,12 +134,12 @@ generate_and_save_map <- function(
     current_wards_sf <- current_wards_sf %>%
       mutate(
         map_var = case_when(
-          is.na(avrage_inc) ~ "No Data",
-          avrage_inc == "NaN" ~ "Respondent refused or did not know",
-          avrage_inc == 0 ~ "No Income",
+          is.na(avrage_income_bracket) ~ "No Data",
+          avrage_income_bracket == "NaN" ~ "Respondent refused or did not know",
+          avrage_income_bracket == 0 ~ "No Income",
           TRUE ~
             as.character(cut(
-              parse_number(avrage_inc),
+              parse_number(avrage_income_bracket),
               breaks = breaks,
               labels = labels,
               include.lowest = TRUE,
@@ -193,7 +173,10 @@ generate_and_save_map <- function(
     manual_colors <- c("darkblue", "blue", "lightblue", "grey50")
     current_wards_sf <- current_wards_sf %>%
       mutate(
-        map_var = factor(current_wards_sf$avrage_ace, levels = labels)
+        map_var = factor(
+          current_wards_sf$avrage_ace,
+          levels = labels
+        )
       )
 
     # 3. Use scale_fill_gradientn with breaks and labels
@@ -208,10 +191,15 @@ generate_and_save_map <- function(
   } else if (variable_name == "pop_density") {
     # Population dencity
     # Calculate population density (total_pop / area)
+
+    valid <- sf::st_is_valid(current_wards_sf)
+    sum(!valid) # number of invalid geometries
+    current_wards_sf[!valid, ] <- sf::st_make_valid(current_wards_sf[!valid, ])
+    current_wards_sf <- current_wards_sf[sf::st_is_valid(current_wards_sf), ]
     current_wards_sf <- current_wards_sf %>%
       mutate(
-        map_var = (as.numeric(total_pop) /
-          (st_area(.) %>% as.numeric() * 10e-6))
+        map_var = (current_wards_sf$total_pop /
+          (as.numeric(st_area(current_wards_sf)) * 10e-6))
       )
     breaks <- c(0, 1, 3, 10, 30, 100, 300, 1000, 3000, Inf)
     manual_colors <- rev(heat.colors(length(breaks) - 1))
@@ -245,7 +233,7 @@ generate_and_save_map <- function(
     legend_name <- "Population Density"
     map_var_aes <- sym("map_var_bin")
   } else if (variable_name == "non_white") {
-    breaks <- c(0, 0.5, 1, 1.5, 2, 100)
+    breaks <- c(0, 0.5, 1, 1.5, 2, Inf)
     labels <- c("Very low", "Low", "Moderate", "High", "Very high")
     colors <- rev(heat.colors(length(breaks) - 1))
     message("Creating map for non_white variable")
@@ -254,7 +242,7 @@ generate_and_save_map <- function(
     current_wards_sf <- current_wards_sf %>%
       mutate(
         map_var = cut(
-          parse_number(current_wards_sf$non_white),
+          current_wards_sf$non_white,
           breaks = breaks,
           labels = labels,
           include.lowest = TRUE,
@@ -309,11 +297,11 @@ generate_and_save_map <- function(
     scale_fn <- scale_fill_manual(
       values = setNames(map_colors, labels_with_no_data),
       na.value = "grey80",
-      name = "Interruption\nFrequency",
+      name = "interruption\nFrequency",
       drop = FALSE,
       limits = labels
     )
-    legend_name <- "Water Interruption Frequency"
+    legend_name <- "Water Frequency"
     map_var_aes <- sym("map_var")
   } else if (variable_name == "dist_over_") {
     # Distance over 200m
@@ -333,7 +321,7 @@ generate_and_save_map <- function(
     current_wards_sf <- current_wards_sf %>%
       mutate(
         map_var = cut(
-          parse_number(current_wards_sf$dist_over_),
+          current_wards_sf$dist_over_,
           breaks = breaks,
           labels = labels,
           include.lowest = TRUE,
@@ -360,12 +348,6 @@ generate_and_save_map <- function(
   municipality_plot <- ggplot() +
     geom_sf(data = municipality_sf, fill = NA, color = "red", linewidth = 1) +
     ggtitle("Municipality Borders Only")
-  ggsave(
-    "municipality_borders_debug.png",
-    plot = municipality_plot,
-    width = 8,
-    height = 6
-  )
 
   test_plot <- ggplot(mtcars, aes(mpg, wt)) + geom_point()
   ggsave("/tmp/test_plot.png", plot = test_plot)
