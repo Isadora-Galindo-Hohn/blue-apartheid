@@ -67,6 +67,8 @@ all_data <- all_data %>%
     dominent_pop_group,
     income,
     non_white,
+    share_dom,
+    equal_distru,
     average_access_to_water,
     dist_over_200,
     interruption_freq,
@@ -207,21 +209,24 @@ income_summary_table <- clean_data %>%
   filter(!is.na(income)) %>%
   group_by(year, dominent_pop_group) %>%
   summarise(
-    `Mean Income` = round(mean(income), 0),
-    `SD Income` = round(sd(income), 0),
-    `N Wards` = n(),
+    mean_income = round(mean(income), 0),
+    sd_income = round(sd(income), 0),
+    n_wards = n(),
     .groups = "drop"
   ) %>%
-  arrange(year, dominent_pop_group) %>%
+  mutate(
+    income_summary = paste0(mean_income, " ± ", sd_income)
+  ) %>%
+  select(year, dominent_pop_group, income_summary, n_wards) %>%
   pivot_wider(
     names_from = year,
-    values_from = c(`Mean Income`, `SD Income`, `N Wards`),
+    values_from = c(income_summary, n_wards),
     names_glue = "{year}_{.value}"
   )
 
-kable(income_summary_table, caption = "Table X: Mean and SD of Monthly Household Income by Dominant Group and Year") %>%
+# Render
+kable(income_summary_table, caption = "Table X: Income (Mean ± SD) and Ward Count by Dominant Group and Year") %>%
   kable_styling(full_width = FALSE)
-
 
 # Combine into one figure using patchwork
 combined_income_plot <- wrap_plots(income_plots_by_year, ncol = 2) +
