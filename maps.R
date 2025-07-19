@@ -16,14 +16,15 @@ get_municipality_filename <- function(year) {
   if (year == 2014) {
     year <- 2011
   }
-  if (year == 2020 || year == 2024) {
+  if (year == 2022 || year == 2024) {
     year <- 2018
   }
   if (year == 2018) {
     # For 2018 and 2020, use the specific shapefile
     manicipality_shp_file <- paste0(
       shp_path_maps,
-      "2018/M/MDB_Local_Municipal_Boundary_2018.shp"
+
+      "2018/MDBLocalMunicipalBoundary2018.gdb/MDB_Local_Municipal_Boundary_2018.shp"
     )
   } else {
     # For other years, construct the path dynamically
@@ -78,8 +79,14 @@ generate_and_save_map <- function(
 
   # Shapefile includes manicupalities for whole south africa
   # Filter for gauteng
-  municipality_sf <- municipality_sf %>%
-    filter(ProvinceCode == "GT")
+  if (year < 2018) {
+    municipality_sf <- municipality_sf %>%
+      filter(ProvinceCode == "GT")
+  } else {
+    message(names(municipality_sf))
+    municipality_sf <- municipality_sf %>%
+      filter(PROVINCE == "Gauteng")
+  }
 
   current_data <- data_source %>% filter(year == .env$year)
   current_wards_sf$avrage_inc <- as.integer(current_wards_sf$avrage_inc)
@@ -277,7 +284,7 @@ generate_and_save_map <- function(
       mutate(
         # Step 1: cut() for numeric bins only
         map_var = cut(
-          parse_number(current_wards_sf$interrupti),
+          current_wards_sf$interrupti,
           breaks = breaks,
           labels = labels,
           include.lowest = TRUE,
