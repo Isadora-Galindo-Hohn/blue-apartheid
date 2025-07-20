@@ -9,10 +9,10 @@ group_colors <- c(
 
 data_legend_sources <- c(
   "2009" = "GCRO QoL 1",
-  "2011" = "QoL 2 and Cencus 2011",
-  "2014" = "QoL 3",
-  "2016" = "QoL 4",
-  "2018" = "QoL 5",
-  "2022" = "QoL 6",
-  "2024" = "QoL 7"
+  "2011" = "GCRO QoL 2 and Cencus 2011",
+  "2014" = "GCRO QoL 3",
+  "2016" = "GCRO QoL 4",
+  "2018" = "GCRO QoL 5",
+  "2022" = "GCRO QoL 6",
+  "2024" = "GCRO QoL 7"
 )
