@@ -112,35 +112,29 @@ income_labels_text <- c(
 )
 
 
-############# Creating log income plots
+##### Creating log income plots
 numeric_income <- clean_data$income %>%
   # Keep, same as filter for lists
   keep(
     !is.na(clean_data$income),
-    !clean_data$income == 0,
     !clean_data$income == "NaN"
   )
 
 # Calculate the log of these midpoints to use as breaks on the log-transformed axis
-log_income_breaks <- log(as.numeric(income_midpoints_numeric[4:length(income_midpoints_numeric)]))
-log_income_labels <- income_labels_text[4:length(income_labels_text)]
-
-message("income brackes")
-print(log_income_breaks)
-message("labels")
-print(log_income_labels)
+log_income_breaks <- log(as.numeric(income_midpoints_numeric[3:length(income_midpoints_numeric)])+1)
+log_income_labels <- income_labels_text[3:length(income_labels_text)]
 
 # Plot 1: Income Distribution by Dominant Population Group (across all years)
 for (yr in years) {
   yearly_data <- clean_data %>% filter(
     !is.na(clean_data$income),
-    !clean_data$income == 0,
-    !clean_data$income == "NaN"
+    !clean_data$income == "NaN",
+    clean_data$year == yr    
   )
 
   year  
   if (nrow(yearly_data) > 0) {
-    p <- ggplot(yearly_data, aes(x = log(yearly_data$income), fill = dominent_pop_group)) +
+    p <- ggplot(yearly_data, aes(x = log(yearly_data$income+1), fill = dominent_pop_group)) +
       geom_density(alpha = 0.6) +
       labs(
         title = paste(
@@ -178,11 +172,10 @@ income_plots_by_year <- lapply(years, function(y) {
   df_year <- clean_data %>% filter(
     year == y,
     !is.na(clean_data$income),
-    !clean_data$income == 0,
     !clean_data$income == "NaN"
   )
   
-  ggplot(df_year, aes(x = log(df_year$income), fill = dominent_pop_group)) +
+  ggplot(df_year, aes(x = log(df_year$income+1), fill = dominent_pop_group)) +
     geom_density(alpha = 0.6) +
     labs(
       title = paste("Income Distribution -", y),
@@ -193,23 +186,23 @@ income_plots_by_year <- lapply(years, function(y) {
     theme_minimal(base_size = 11) +
     scale_x_continuous(breaks = log_income_breaks, labels = log_income_labels) +
     scale_fill_manual(values = group_colors) +
-    theme(legend.position = "none") # Turn on only for one final plot if needed
+    theme(legend.position = "none", axis.text.x = element_text(angle = 45, vjust=1, hjust=1))
 })
 
-################# END OF LOG INCOME
+# Combine into one figure using patchwork
+combined_income_plot <- wrap_plots(income_plots_by_year, ncol = 2) +
+  plot_annotation(title = "Income Distribution by Dominant Group (2009–2024)")
 
+ggsave(
+  "output/combined_income_distribution_by_year.png",
+  combined_income_plot,
+  width = 14,
+  height = 10
+)
 
+##### END OF LOG INCOME
 
-income_stats <- clean_data %>%
-  filter(!is.na(income)) %>%
-  group_by(year, dominent_pop_group) %>%
-  summarise(
-    mean_income = mean(income, na.rm = TRUE),
-    sd_income = sd(income, na.rm = TRUE),
-    n = n()
-  ) %>%
-  arrange(year, dominent_pop_group)
-
+##### Calculating income stats
 income_summary_table <- clean_data %>%
   filter(!is.na(income)) %>%
   group_by(year, dominent_pop_group) %>%
@@ -279,17 +272,9 @@ ggplot(income_summary_for_plot, aes(
 # Save
 ggsave("output/income_mean_sd_ribbon_by_group_year.png", width = 10, height = 6)
 
-# Combine into one figure using patchwork
-combined_income_plot <- wrap_plots(income_plots_by_year, ncol = 2) +
-  plot_annotation(title = "Income Distribution by Dominant Group (2009–2024)")
+######
 
-ggsave(
-  "output/combined_income_distribution_by_year.png",
-  combined_income_plot,
-  width = 14,
-  height = 10
-)
-
+###### Dominant group stats
 # Summary by group
 share_dom_summary <- all_data %>%
   filter(!is.na(share_dom)) %>%
@@ -370,54 +355,10 @@ ggplot(dominant_group_share, aes(x = factor(year), y = share, group = dominent_p
 # Save to file
 ggsave("output/ward_dominance_share_by_group_over_time.png", width = 10, height = 6)
 
-# --- RELATIONAL PLOTS ---
 
-
-###########
-message("\n--- Checking clean_data for Year 2018 ---")
-clean_data_2018 <- clean_data %>% filter(year == 2018)
-
-message("Number of rows in clean_data for 2018:")
-print(nrow(clean_data_2018))
-
-message("\nCounts of dominent_pop_group in clean_data for 2018:")
-clean_data_2018 %>%
-  count(dominent_pop_group) %>%
-  print()
-
-message("\nNA check for key variables in clean_data for 2018:")
-clean_data_2018 %>%
-  summarise(
-    na_income = sum(is.na(income)),
-    na_dominent_pop_group = sum(is.na(dominent_pop_group)),
-    na_non_white = sum(is.na(non_white)),
-    na_dist_over_200 = sum(is.na(dist_over_200)),
-    na_interruption_freq = sum(is.na(interruption_freq))
-  ) %>%
-  print()
-
-message("\n--- Data for interruption_trajectories (before summarise) ---")
-data_for_interruption_summary <- clean_data %>%
-  filter(year %in% years_interrupt, !is.na(interruption_freq))
-
-message("Number of rows in data_for_interruption_summary:")
-print(nrow(data_for_interruption_summary))
-
-message("\nCounts of dominent_pop_group in data_for_interruption_summary:")
-data_for_interruption_summary %>%
-  count(year, dominent_pop_group) %>%
-  print()
-
-interruption_trajectories <- data_for_interruption_summary %>% # Use the filtered data here
-  group_by(year, dominent_pop_group) %>%
-  summarise(
-    mean_interruption_freq = mean(interruption_freq, na.rm = TRUE),
-    .groups = "drop"
-  )
+###### END
 
 ######
-
-
 # Plot 2: Share of Distance >200m vs. Log(Income) by Dominant Group (for a representative year, e.g., 2011)
 year_for_distance_plot <- 2011 # Or pick another year from years_distance
 plot_data_distance <- clean_data %>%
@@ -426,7 +367,7 @@ plot_data_distance <- clean_data %>%
 if (nrow(plot_data_distance) > 0) {
   ggplot(
     plot_data_distance,
-    aes(x = log(income), y = dist_over_200, color = dominent_pop_group)
+    aes(x = log(income+1), y = dist_over_200, color = dominent_pop_group)
   ) +
     geom_point(alpha = 0.3) +
     # Use GLM with quasibinomial family for proportion data to keep predictions between 0 and 1
@@ -447,10 +388,10 @@ if (nrow(plot_data_distance) > 0) {
     ) +
     theme_minimal(base_size = 13) +
     theme(legend.position = "bottom") +
-    scale_y_continuous(labels = scales::percent_format(scale = 1))+
+    scale_y_continuous(labels = scales::percent_format(scale = 100))+
     scale_x_continuous(
       breaks = log_income_breaks,
-      labels = income_labels_text
+      labels = log_income_labels
     ) +
     theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
     scale_color_manual(values = group_colors) # Apply consistent line/point colors
@@ -475,7 +416,7 @@ plot_data_interrupt <- clean_data %>%
 if (nrow(plot_data_interrupt) > 0) {
   ggplot(
     plot_data_interrupt,
-    aes(x = log(income), y = interruption_freq, color = dominent_pop_group)
+    aes(x = log(income+1), y = interruption_freq, color = dominent_pop_group)
   ) +
     geom_point(alpha = 0.3) +
     # Use GLM with quasibinomial family for proportion data to keep predictions between 0 and 1
@@ -496,10 +437,10 @@ if (nrow(plot_data_interrupt) > 0) {
     ) +
     theme_minimal(base_size = 13) +
     theme(legend.position = "bottom") +
-    scale_y_continuous(labels = scales::percent_format(scale = 1))+
+    scale_y_continuous(labels = scales::percent_format(scale = 100))+
     scale_x_continuous(
       breaks = log_income_breaks,
-      labels = income_labels_text
+      labels = log_income_labels
     ) +
     theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
     scale_color_manual(values = group_colors) # Apply consistent line/point colors
@@ -542,12 +483,13 @@ if (nrow(interruption_trajectories) > 0) {
     labs(
       title = "Trajectories of Mean Water Interruption Frequency by Dominant Group",
       x = "Year",
-      y = "Mean Share of Frequent Interruptions",
+      y = "Mean Percentage of Frequent Interruptions",
       color = "Dominant Group"
     ) +
     theme_minimal(base_size = 13) +
     theme(legend.position = "bottom") +
     scale_x_continuous(breaks = years_interrupt) +
+    scale_y_continuous(labels = scales::percent_format(scale = 100))+
     scale_color_manual(values = group_colors) # Apply consistent line colors
   ggsave(
     file.path(OUTPUT_DIR, "Plot 4 - interruption_trajectories_by_group.png"),
@@ -568,48 +510,6 @@ distance_trajectories <- clean_data %>%
     .groups = "drop"
   )
 
-
-
-##############
-message("\n--- interruption_trajectories dataframe content ---")
-print(interruption_trajectories)
-
-# --- DIAGNOSTIC STEP 4: Inspect data *before* summarising for distance_trajectories ---
-message("\n--- Data for distance_trajectories (before summarise) ---")
-data_for_distance_summary <- clean_data %>%
-  filter(year %in% years_distance, !is.na(dist_over_200))
-
-message("Number of rows in data_for_distance_summary:")
-print(nrow(data_for_distance_summary))
-
-message("\nCounts of dominent_pop_group in data_for_distance_summary:")
-data_for_distance_summary %>%
-  count(year, dominent_pop_group) %>%
-  print()
-
-# ... (Your existing code for calculating distance_trajectories) ...
-distance_trajectories <- data_for_distance_summary %>% # Use the filtered data here
-  group_by(year, dominent_pop_group) %>%
-  summarise(
-    mean_dist_over_200 = mean(dist_over_200, na.rm = TRUE),
-    .groups = "drop"
-  )
-
-
-message("\n--- distance_trajectories dataframe content ---")
-print(distance_trajectories)
-
-# --- DIAGNOSTIC STEP 6: Check group_colors mapping ---
-message("\n--- Checking group_colors mapping ---")
-print(group_colors)
-message("Levels present in interruption_trajectories$dominent_pop_group:")
-print(levels(factor(interruption_trajectories$dominent_pop_group))) # Ensure it's a factor for levels()
-message("Levels present in distance_trajectories$dominent_pop_group:")
-print(levels(factor(distance_trajectories$dominent_pop_group)))
-
-################
-
-
 # Plot 5: Trajectories of Mean Distance >200m by Dominant Population Group
 if (nrow(distance_trajectories) > 0) {
   ggplot(
@@ -626,11 +526,12 @@ if (nrow(distance_trajectories) > 0) {
     labs(
       title = "Trajectories of Mean Distance >200m from Water by Dominant Group",
       x = "Year",
-      y = "Mean Share of Households with Distance >200m",
+      y = "Mean Percentage of Households with Distance >200m",
       color = "Dominant Group"
     ) +
     theme_minimal(base_size = 13) +
     theme(legend.position = "bottom") +
+    scale_y_continuous(labels = scales::percent_format(scale = 100))+
     scale_x_continuous(breaks = years_distance) +
     scale_color_manual(values = group_colors) 
   ggsave(
@@ -643,6 +544,7 @@ if (nrow(distance_trajectories) > 0) {
 }
 
 
+####
 income_breaks_10pct_raw <- quantile(
   clean_data$income,
   probs = seq(0, 1, by = 0.1),
@@ -686,13 +588,6 @@ income_category_data_10pct <- clean_data %>%
       fct_drop() # Drop unused levels if any
   ) %>%
   filter(!is.na(income_category)) # Filter out any NAs from categorization
-
-# Define a color palette for income categories (e.g., a sequential green palette)
-# The number of colors should match the number of *actual* labels generated
-income_interval_colors_10pct <- get_greens_palette(length(
-  income_interval_labels_10pct_new
-))
-names(income_interval_colors_10pct) <- income_interval_labels_10pct_new # Assign names to match labels
 
 ### Linerar regression
 

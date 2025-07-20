@@ -71,13 +71,16 @@ run_model <- function(df, y_var, year) {
 }
 
 load_and_preprocess_yearly_data <- function(years, data_path) {
+  message("all years: ", paste(years, collapse = ", "))
   map_dfr(years, function(y) {
+    message("Loading data for year: ", y)
     file <- check_file(paste0(data_path, "data_", y, ".csv"))
     if (is.null(file)) {
       message("File for year ", y, " does not exist. Skipping.")
       return(NULL) # Skip if file does not exist
     }
     df <- read.csv2(file, fileEncoding = "latin1", stringsAsFactors = FALSE)
+    message(names(df))
 
     required_cols <- c(
       "avrage_income_bracket",
@@ -109,7 +112,7 @@ load_and_preprocess_yearly_data <- function(years, data_path) {
     df$dist_over_200 <- df$dist_over_200 %>%
       as.character() %>%
       str_replace_all(",", ".") %>%
-      suppressWarnings(as.numeric(.))
+     suppressWarnings(as.numeric(.))
     df$non_white <- df$non_white %>%
       as.character() %>%
       str_replace_all(",", ".") %>%
@@ -118,4 +121,4 @@ load_and_preprocess_yearly_data <- function(years, data_path) {
     df$year <- y # add year column
     return(df)
   })
-}
+} 
