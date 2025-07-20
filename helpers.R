@@ -39,7 +39,7 @@ run_model <- function(df, y_var, year) {
   formula <- as.formula(
     paste0(y_var, " ~ log(income + 1) + non_white + dominent_pop_group")
   )
-  
+
   model_result <- tryCatch(
     lm(formula, data = df_filtered),
     error = function(e) {
@@ -111,7 +111,7 @@ load_and_preprocess_yearly_data <- function(years, data_path) {
     df$dist_over_200 <- df$dist_over_200 %>%
       as.character() %>%
       str_replace_all(",", ".") %>%
-     suppressWarnings(as.numeric(.))
+      suppressWarnings(as.numeric(.))
     df$non_white <- df$non_white %>%
       as.character() %>%
       str_replace_all(",", ".") %>%
@@ -120,4 +120,4 @@ load_and_preprocess_yearly_data <- function(years, data_path) {
     df$year <- y # add year column
     return(df)
   })
-} 
+}
