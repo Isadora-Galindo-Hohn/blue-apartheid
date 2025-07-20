@@ -375,7 +375,6 @@ generate_and_save_map <- function(
   }
 
   # Build the plot
-
   p <- ggplot() +
     ward_layer +
     geom_sf(
@@ -392,7 +391,7 @@ generate_and_save_map <- function(
     theme_minimal(base_size = 12) +
     theme(
       plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
-      legend.position = "right", # Default position
+      legend.position = "bottom", # Default position
       legend.title = element_text(size = 10),
       legend.text = element_text(size = 9),
       panel.grid.major = element_blank(),
