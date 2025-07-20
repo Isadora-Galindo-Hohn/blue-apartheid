@@ -37,7 +37,6 @@ get_municipality_filename <- function(year) {
       "a00000009.gdbtable"
     )
   }
-  message("Municipality ", manicipality_shp_file)
   return(manicipality_shp_file)
 }
 
@@ -56,7 +55,6 @@ generate_and_save_map <- function(
   map_title,
   data_source = clean_data
 ) {
-  message("Generating map for year: ", year, " and variable: ", variable_name)
   shp_path_maps <- "../QGIS/"
   # Construct shapefile path for the current year
   shape_files <- get_shape_files(year)
@@ -83,14 +81,13 @@ generate_and_save_map <- function(
     municipality_sf <- municipality_sf %>%
       filter(ProvinceCode == "GT")
   } else {
-    message(names(municipality_sf))
     municipality_sf <- municipality_sf %>%
       filter(PROVINCE == "Gauteng")
   }
 
   current_data <- data_source %>% filter(year == .env$year)
   current_wards_sf$avrage_inc <- as.integer(current_wards_sf$avrage_inc)
-  current_wards_sf$non_white <- as.integer(current_wards_sf$non_white)
+  current_wards_sf$non_white <- as.numeric(current_wards_sf$non_white)
   current_wards_sf$dist_over_ <- as.integer(current_wards_sf$dist_over_)
   current_wards_sf$interrupti <- as.integer(current_wards_sf$interrupti)
   current_wards_sf$total_pop <- as.integer(current_wards_sf$total_pop)
@@ -240,11 +237,19 @@ generate_and_save_map <- function(
     legend_name <- "Population Density"
     map_var_aes <- sym("map_var_bin")
   } else if (variable_name == "non_white") {
-    breaks <- c(0, 0.5, 1, 1.5, 2, Inf)
-    labels <- c("Very low", "Low", "Moderate", "High", "Very high")
+    breaks <- c(0, 0.60, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90, 0.95, Inf)
+    labels <- c(
+      "0% - 60%",
+      "60% - 65%",
+      "65% - 70%",
+      "70% - 75%",
+      "75% - 80%",
+      "80% - 85%",
+      "85% - 90%",
+      "90% - 95%",
+      "95%+"
+    )
     colors <- rev(heat.colors(length(breaks) - 1))
-    message("Creating map for non_white variable")
-    message(names(current_wards_sf))
     # KL-divergence
     current_wards_sf <- current_wards_sf %>%
       mutate(
@@ -258,11 +263,11 @@ generate_and_save_map <- function(
       )
     scale_fn <- scale_fill_brewer(
       palette = "YlOrRd",
-      na.value = "grey80",
-      name = "Racial Segregation (KL Divergence)",
+      na.value = "gray80",
+      name = "Racial clustering (non white population share)",
       drop = FALSE
     )
-    legend_name <- "Racial Segregation (KL Divergence)"
+    legend_name <- "Racial clustering (non white population share)"
     map_var_aes <- sym("map_var")
   } else if (variable_name == "interrupti") {
     # Water interruption frequency
