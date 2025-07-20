@@ -167,14 +167,13 @@ generate_and_save_map <- function(
     map_var_aes <- sym("map_var")
   } else if (variable_name == "avrage_ace") {
     # Average access to water
-    # Ensure it's a factor and handle NA
     labels <- c(
       "Piped, into dwelling",
       "Piped, into yard only",
       "Street taps or standpipes",
       "Other"
     )
-    manual_colors <- c("darkblue", "blue", "lightblue", "grey50")
+    manual_colors <- c("#7396e6", "#abcdef", "#edfbff", "gray50")
     current_wards_sf <- current_wards_sf %>%
       mutate(
         map_var = factor(
