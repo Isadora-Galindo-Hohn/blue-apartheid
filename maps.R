@@ -86,7 +86,6 @@ generate_and_save_map <- function(
   }
 
   current_data <- data_source %>% filter(year == .env$year)
-  current_wards_sf$avrage_inc <- as.integer(current_wards_sf$avrage_inc)
   current_wards_sf$non_white <- as.numeric(current_wards_sf$non_white)
   current_wards_sf$dist_over_ <- as.numeric(current_wards_sf$dist_over_)
   current_wards_sf$interrupti <- as.numeric(current_wards_sf$interrupti)
@@ -136,25 +135,29 @@ generate_and_save_map <- function(
     )
     current_wards_sf <- current_wards_sf %>%
       mutate(
+        avrage_inc_num = ifelse(avrage_inc == "NaN", -2, as.numeric(avrage_inc))
+      )
+    current_wards_sf <- current_wards_sf %>%
+      mutate(
         map_var = case_when(
-          is.na(current_wards_sf$avrage_inc) ~ "No Data",
-          current_wards_sf$avrage_inc == "NaN" ~
+          is.na(current_wards_sf$avrage_inc_num) ~ "No Data",
+          current_wards_sf$avrage_inc_num == -2 ~
             "Respondent refused or did not know",
-          current_wards_sf$avrage_inc == 0 ~ "No Income",
+          current_wards_sf$avrage_inc_num == 0 ~ "No Income",
           TRUE ~
-            as.character(cut(
-              current_wards_sf$avrage_inc,
+            cut(
+              current_wards_sf$avrage_inc_num,
               breaks = breaks,
               labels = labels,
               include.lowest = TRUE,
               right = FALSE
-            ))
+            )
         ),
         map_var = factor(map_var, levels = labels)
       )
 
     map_colors <- setNames(
-      c("grey80", "red", get_greens_palette(length(labels) - 2)),
+      c("grey80", "gray40", get_greens_palette(length(labels) - 2)),
       labels
     )
     scale_fn <- scale_fill_manual(
