@@ -1,11 +1,3 @@
-#### PROBLEMS
-# 1. Fix water interuptions
-# 2. Hard code color of population group, maybe
-# 1. Fig of % of dominant group for each year
-# 2. Callculate how many wards follow distrubution of province
-# 3. Calculate how big (%) the dominant population group is 
-# 4. Calculate for each year how many % of wards have larger than 95% dominant 
-
 # Load libraries
 library(tidyverse) # For data manipulation (dplyr, readr, purrr) and plotting (ggplot2)
 library(broom) # For tidy() to extract model coefficients
@@ -29,13 +21,18 @@ source("constants.R")
 
 # Set working directory and data path
 setwd(".")
-data_path <- "../" # Adjust if your data_YEAR.csv files are in a different relative path
+data_path <- "../" 
 years <- c(2009, 2011, 2014, 2016, 2018, 2022, 2024)
 
 # Define years for each dependent variable upfront
 years_interrupt <- c(2018, 2022, 2024)
 years_distance <- c(2009, 2011, 2014, 2016, 2018)
 
+# Creating output folder
+OUTPUT_DIR <- "output"
+if (!dir.exists(OUTPUT_DIR)) {
+  dir.create(OUTPUT_DIR)
+}
 
 # Load and preprocess all yearly data files
 all_data <- load_and_preprocess_yearly_data(years, data_path)
@@ -52,7 +49,7 @@ all_data <- all_data %>%
     ),
     dominent_pop_group = fct_drop(as.factor(dominent_pop_group)), # Convert to factor, drop unused levels
     average_access_to_water = fct_drop(as.factor(avrage_acess_to_water)),
-    income = as.numeric(avrage_income_bracket),
+    income = as.double(avrage_income_bracket),
     non_white = as.numeric(non_white),
     share_dom = as.numeric(share_dom),
     equal_distru = fct_drop(as.factor(equal_distru)),
@@ -76,18 +73,14 @@ all_data <- all_data %>%
   )
 
 # Filter data for regression: remove NAs in key predictors and handle log(income)
-clean_data <- all_data %>%
-  filter(
-    !is.na(income),
-    income > 0, # Exclude zero/negative income for log transformation (log(0) is undefined)
-    !is.na(dominent_pop_group),
-    !is.na(non_white),
-    !is.na(dist_over_200) | !is.na(interruption_freq) # Keep rows if at least one dependent var is available
-  )
+clean_data <- all_data 
 
 # --- Define custom income axis breaks and labels for plots ---
 # These are the midpoints from your income bracket definition
 income_midpoints_numeric <- c(
+  NA,
+  "NaN",
+  0,
   200,
   600,
   1200,
@@ -102,6 +95,9 @@ income_midpoints_numeric <- c(
 )
 # Corresponding labels (can be original brackets or just the midpoints)
 income_labels_text <- c(
+  "No data",
+  "Refuse or Don't know",
+  "No Income",
   "R1-R400",
   "R401-R800",
   "R801-R1.6k",
@@ -115,43 +111,36 @@ income_labels_text <- c(
   "R204.8k+"
 )
 
+
+############# Creating log income plots
+numeric_income <- clean_data$income %>%
+  # Keep, same as filter for lists
+  keep(
+    !is.na(clean_data$income),
+    !clean_data$income == 0,
+    !clean_data$income == "NaN"
+  )
+
 # Calculate the log of these midpoints to use as breaks on the log-transformed axis
-log_income_breaks <- log(income_midpoints_numeric)
+log_income_breaks <- log(as.numeric(income_midpoints_numeric[4:length(income_midpoints_numeric)]))
+log_income_labels <- income_labels_text[4:length(income_labels_text)]
 
-# --- Define color palettes for the new 10% interval categories ---
-# Define 10% breaks for categorization (0 to 1, step 0.1)
-interval_breaks <- seq(0, 1, by = 0.1)
-# Define labels for these intervals (e.g., "0-10%", "10-20%", etc.)
-# Ensure the last label covers up to 100%
-interval_labels <- paste0(seq(0, 90, by = 10), "-", seq(10, 100, by = 10), "%")
+message("income brackes")
+print(log_income_breaks)
+message("labels")
+print(log_income_labels)
 
-# Use colorRampPalette to generate 10 colors for Blues and Reds
-# Changed Blues palette to GnBu for better visibility as per user request
-get_blues_palette <- colorRampPalette(brewer.pal(9, "GnBu")) # Changed from "Blues" to "GnBu"
-dist_interval_colors_10pct <- get_blues_palette(length(interval_labels))
-names(dist_interval_colors_10pct) <- interval_labels # Assign names to match labels
-
-get_reds_palette <- colorRampPalette(brewer.pal(9, "Reds"))
-interrupt_interval_colors_10pct <- get_reds_palette(length(interval_labels))
-names(interrupt_interval_colors_10pct) <- interval_labels # Assign names to match labels
-
-# Define a color palette for income intervals (e.g., a sequential green palette)
-get_greens_palette <- colorRampPalette(brewer.pal(9, "Greens"))
-# The number of labels for income intervals will be determined dynamically
-# after calculating unique breaks, so we will assign names later.
-
-# --- NEW: DESCRIPTIVE PLOTS (Similar to Venter et al. Fig. 2A) ---
-
-OUTPUT_DIR <- "output"
-if (!dir.exists(OUTPUT_DIR)) {
-  dir.create(OUTPUT_DIR)
-}
 # Plot 1: Income Distribution by Dominant Population Group (across all years)
 for (yr in years) {
-  yearly_data <- clean_data %>% filter(year == yr, !is.na(income), !is.na(dominent_pop_group))
-  
+  yearly_data <- clean_data %>% filter(
+    !is.na(clean_data$income),
+    !clean_data$income == 0,
+    !clean_data$income == "NaN"
+  )
+
+  year  
   if (nrow(yearly_data) > 0) {
-    p <- ggplot(yearly_data, aes(x = log(income), fill = dominent_pop_group)) +
+    p <- ggplot(yearly_data, aes(x = log(yearly_data$income), fill = dominent_pop_group)) +
       geom_density(alpha = 0.6) +
       labs(
         title = paste("Distribution of Income by Dominant Population Group -", yr),
@@ -164,7 +153,7 @@ for (yr in years) {
         legend.position = "bottom",
         axis.text.x = element_text(angle = 45, hjust = 1)
       ) +
-      scale_x_continuous(breaks = log_income_breaks, labels = income_labels_text) +
+      scale_x_continuous(breaks = log_income_breaks, labels = log_income_labels) +
       scale_fill_manual(values = group_colors)
     
     ggsave(
@@ -180,9 +169,14 @@ for (yr in years) {
 
 # Create one plot per year
 income_plots_by_year <- lapply(years, function(y) {
-  df_year <- clean_data %>% filter(year == y)
+  df_year <- clean_data %>% filter(
+    year == y,
+    !is.na(clean_data$income),
+    !clean_data$income == 0,
+    !clean_data$income == "NaN"
+  )
   
-  ggplot(df_year, aes(x = log(income), fill = dominent_pop_group)) +
+  ggplot(df_year, aes(x = log(df_year$income), fill = dominent_pop_group)) +
     geom_density(alpha = 0.6) +
     labs(
       title = paste("Income Distribution -", y),
@@ -191,9 +185,14 @@ income_plots_by_year <- lapply(years, function(y) {
       fill = "Dominant Group"
     ) +
     theme_minimal(base_size = 11) +
+    scale_x_continuous(breaks = log_income_breaks, labels = log_income_labels) +
     scale_fill_manual(values = group_colors) +
     theme(legend.position = "none") # Turn on only for one final plot if needed
 })
+
+################# END OF LOG INCOME
+
+
 
 income_stats <- clean_data %>%
   filter(!is.na(income)) %>%
@@ -228,51 +227,182 @@ income_summary_table <- clean_data %>%
 kable(income_summary_table, caption = "Table X: Income (Mean ± SD) and Ward Count by Dominant Group and Year") %>%
   kable_styling(full_width = FALSE)
 
+# Prepare summary data
+income_summary_for_plot <- clean_data %>%
+  filter(!is.na(income)) %>%
+  group_by(year, dominent_pop_group) %>%
+  summarise(
+    mean_income = mean(income, na.rm = TRUE),
+    sd_income = sd(income, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Plot with ribbon for ±1 SD
+ggplot(income_summary_for_plot, aes(
+  x = factor(year),
+  y = mean_income,
+  group = dominent_pop_group,
+  color = dominent_pop_group,
+  fill = dominent_pop_group
+)) +
+  geom_ribbon(
+    aes(
+      ymin = mean_income - sd_income,
+      ymax = mean_income + sd_income
+    ),
+    alpha = 0.2,
+    color = NA
+  ) +
+  geom_line(linewidth = 1.2) +
+  geom_point(size = 2.5) +
+  labs(
+    title = "Average Household Income by Dominant Group (±SD Ribbon)",
+    x = "Year",
+    y = "Mean Monthly Household Income (R)",
+    color = "Dominant Group",
+    fill = "Dominant Group"
+  ) +
+  theme_minimal(base_size = 13) +
+  scale_color_manual(values = group_colors) +
+  scale_fill_manual(values = group_colors) +
+  theme(legend.position = "bottom")
+
+# Save
+ggsave("output/income_mean_sd_ribbon_by_group_year.png", width = 10, height = 6)
+
 # Combine into one figure using patchwork
 combined_income_plot <- wrap_plots(income_plots_by_year, ncol = 2) +
   plot_annotation(title = "Income Distribution by Dominant Group (2009–2024)")
 
 ggsave("output/combined_income_distribution_by_year.png", combined_income_plot, width = 14, height = 10)
 
-refusal_share <- clean_data %>%
-  mutate(refused = is.na(income)) %>%
+# Summary by group
+share_dom_summary <- all_data %>%
+  filter(!is.na(share_dom)) %>%
   group_by(year, dominent_pop_group) %>%
   summarise(
-    refused_n = sum(refused),
-    total = n(),
-    refusal_rate = refused_n / total
+    wards_over_95 = sum(share_dom > 0.95, na.rm = TRUE),
+    total_wards = n(),
+    percent_over_95 = 100 * wards_over_95 / total_wards,
+    .groups = "drop"
   )
 
-ggplot(refusal_share, aes(x = dominent_pop_group, y = refusal_rate, fill = dominent_pop_group)) +
-  geom_col() +
-  facet_wrap(~year) +
-  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+share_dom_total <- share_dom_summary %>%
+  group_by(year) %>%
+  summarise(
+    wards_over_95 = sum(wards_over_95),
+    total_wards = sum(total_wards),
+    percent_over_95 = 100 * wards_over_95 / total_wards,
+    dominent_pop_group = "Total",
+    .groups = "drop"
+  )
+
+share_dom_combined <- bind_rows(share_dom_summary, share_dom_total)
+
+# Plot
+ggplot(share_dom_combined, aes(x = factor(year), y = percent_over_95, group = dominent_pop_group)) +
+  geom_line(aes(color = dominent_pop_group), linewidth = 1.2) +
+  geom_point(aes(color = dominent_pop_group), size = 2.5) +
   labs(
-    title = "Share of Wards with Refused Income Responses by Dominant Group",
-    x = "Dominant Group",
-    y = "Refusal Rate"
+    title = "Share of Wards with >95% Dominant Group by Year",
+    x = "Year",
+    y = "Share of Wards (%)",
+    color = "Dominant Group"
   ) +
-  theme_minimal(base_size = 12) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  scale_fill_manual(values = group_colors)
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) +
+  theme_minimal(base_size = 13) +
+  theme(legend.position = "bottom") +
+  scale_color_manual(
+    values = c(group_colors, "Total" = "black")
+  )
 
-ggsave("output/refusal_rate_income_by_group_year.png", width = 12, height = 8)
+# Save the figure
+ggsave("output/share_dom_over_95_by_group_year.png", width = 10, height = 6)
 
-ggplot(clean_data, aes(x = share_dom, fill = dominent_pop_group)) +
-  geom_histogram(binwidth = 0.05, alpha = 0.7, position = "identity") +
-  facet_wrap(~year, scales = "free_y") +
+
+# Count number of wards per dominant group per year
+dominant_group_counts <- all_data %>%
+  filter(!is.na(dominent_pop_group)) %>%
+  group_by(year, dominent_pop_group) %>%
+  summarise(ward_count = n(), .groups = "drop")
+
+# Total number of wards per year
+total_wards_per_year <- all_data %>%
+  filter(!is.na(dominent_pop_group)) %>%
+  group_by(year) %>%
+  summarise(total_wards = n(), .groups = "drop")
+
+# Join to compute proportion
+dominant_group_share <- dominant_group_counts %>%
+  left_join(total_wards_per_year, by = "year") %>%
+  mutate(share = ward_count / total_wards * 100)
+
+# Plot
+ggplot(dominant_group_share, aes(x = factor(year), y = share, group = dominent_pop_group)) +
+  geom_line(aes(color = dominent_pop_group), linewidth = 1.2) +
+  geom_point(aes(color = dominent_pop_group), linewidth = 2) +
   labs(
-    title = "Distribution of Share of Dominant Group in Wards",
-    x = "Share of Dominant Population in Ward",
-    y = "Count of Wards"
+    title = "Share of Wards Dominated by Each Population Group (Normalized)",
+    x = "Year",
+    y = "Share of Wards (%)",
+    color = "Dominant Group"
   ) +
-  scale_x_continuous(labels = scales::percent_format(accuracy = 1)) +
-  scale_fill_manual(values = group_colors) +
-  theme_minimal(base_size = 12)
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) +
+  scale_color_manual(values = group_colors) +
+  theme_minimal(base_size = 13) +
+  theme(legend.position = "bottom")
+  
 
-ggsave("output/share_dom_distribution_by_year.png", width = 14, height = 10)
+# Save to file
+ggsave("output/ward_dominance_share_by_group_over_time.png", width = 10, height = 6)
 
 # --- RELATIONAL PLOTS ---
+
+
+###########
+message("\n--- Checking clean_data for Year 2018 ---")
+clean_data_2018 <- clean_data %>% filter(year == 2018)
+
+message("Number of rows in clean_data for 2018:")
+print(nrow(clean_data_2018))
+
+message("\nCounts of dominent_pop_group in clean_data for 2018:")
+clean_data_2018 %>%
+  count(dominent_pop_group) %>%
+  print()
+
+message("\nNA check for key variables in clean_data for 2018:")
+clean_data_2018 %>%
+  summarise(
+    na_income = sum(is.na(income)),
+    na_dominent_pop_group = sum(is.na(dominent_pop_group)),
+    na_non_white = sum(is.na(non_white)),
+    na_dist_over_200 = sum(is.na(dist_over_200)),
+    na_interruption_freq = sum(is.na(interruption_freq))
+  ) %>%
+  print()
+
+message("\n--- Data for interruption_trajectories (before summarise) ---")
+data_for_interruption_summary <- clean_data %>%
+  filter(year %in% years_interrupt, !is.na(interruption_freq))
+
+message("Number of rows in data_for_interruption_summary:")
+print(nrow(data_for_interruption_summary))
+
+message("\nCounts of dominent_pop_group in data_for_interruption_summary:")
+data_for_interruption_summary %>%
+  count(year, dominent_pop_group) %>%
+  print()
+
+interruption_trajectories <- data_for_interruption_summary %>% # Use the filtered data here
+  group_by(year, dominent_pop_group) %>%
+  summarise(
+    mean_interruption_freq = mean(interruption_freq, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+######
+
 
 # Plot 2: Share of Distance >200m vs. Log(Income) by Dominant Group (for a representative year, e.g., 2011)
 year_for_distance_plot <- 2011 # Or pick another year from years_distance
@@ -298,11 +428,12 @@ if (nrow(plot_data_distance) > 0) {
         ")"
       ),
       x = "Average Monthly Household Income", # Label reflects the original scale
-      y = "Share of Households with Distance >200m",
+      y = "Share of Households with Distance >200m (%)",
       color = "Dominant Group"
     ) +
     theme_minimal(base_size = 13) +
     theme(legend.position = "bottom") +
+    scale_y_continuous(labels = scales::percent_format(scale = 1))+
     scale_x_continuous(
       breaks = log_income_breaks,
       labels = income_labels_text
@@ -346,11 +477,12 @@ if (nrow(plot_data_interrupt) > 0) {
         ")"
       ),
       x = "Average Monthly Household Income", # Label reflects the original scale
-      y = "Share of People with Frequent Water Interruptions",
+      y = "Share of People with Frequent Water Interruptions (%)",
       color = "Dominant Group"
     ) +
     theme_minimal(base_size = 13) +
     theme(legend.position = "bottom") +
+    scale_y_continuous(labels = scales::percent_format(scale = 1))+
     scale_x_continuous(
       breaks = log_income_breaks,
       labels = income_labels_text
@@ -422,6 +554,48 @@ distance_trajectories <- clean_data %>%
     .groups = "drop"
   )
 
+
+
+##############
+message("\n--- interruption_trajectories dataframe content ---")
+print(interruption_trajectories)
+
+# --- DIAGNOSTIC STEP 4: Inspect data *before* summarising for distance_trajectories ---
+message("\n--- Data for distance_trajectories (before summarise) ---")
+data_for_distance_summary <- clean_data %>%
+  filter(year %in% years_distance, !is.na(dist_over_200))
+
+message("Number of rows in data_for_distance_summary:")
+print(nrow(data_for_distance_summary))
+
+message("\nCounts of dominent_pop_group in data_for_distance_summary:")
+data_for_distance_summary %>%
+  count(year, dominent_pop_group) %>%
+  print()
+
+# ... (Your existing code for calculating distance_trajectories) ...
+distance_trajectories <- data_for_distance_summary %>% # Use the filtered data here
+  group_by(year, dominent_pop_group) %>%
+  summarise(
+    mean_dist_over_200 = mean(dist_over_200, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+
+message("\n--- distance_trajectories dataframe content ---")
+print(distance_trajectories)
+
+# --- DIAGNOSTIC STEP 6: Check group_colors mapping ---
+message("\n--- Checking group_colors mapping ---")
+print(group_colors)
+message("Levels present in interruption_trajectories$dominent_pop_group:")
+print(levels(factor(interruption_trajectories$dominent_pop_group))) # Ensure it's a factor for levels()
+message("Levels present in distance_trajectories$dominent_pop_group:")
+print(levels(factor(distance_trajectories$dominent_pop_group)))
+
+################
+
+
 # Plot 5: Trajectories of Mean Distance >200m by Dominant Population Group
 if (nrow(distance_trajectories) > 0) {
   ggplot(
@@ -444,7 +618,7 @@ if (nrow(distance_trajectories) > 0) {
     theme_minimal(base_size = 13) +
     theme(legend.position = "bottom") +
     scale_x_continuous(breaks = years_distance) +
-    scale_color_manual(values = group_colors) # Apply consistent line colors
+    scale_color_manual(values = group_colors) 
   ggsave(
     file.path(OUTPUT_DIR, "Plot 5 - distance_trajectories_by_group.png"),
     width = 10,
@@ -455,122 +629,6 @@ if (nrow(distance_trajectories) > 0) {
 }
 
 
-# --- Stacked Bar Graphs showing PROPORTION OF WARDS by Category (10% intervals) ---
-
-# Define 10% breaks for categorization (0 to 1, step 0.1)
-interval_breaks <- seq(0, 1, by = 0.1)
-# Define labels for these intervals (e.g., "0-10%", "10-20%", etc.)
-# Ensure the last label covers up to 100%
-interval_labels <- paste0(seq(0, 90, by = 10), "-", seq(10, 100, by = 10), "%")
-
-
-# Plot 12: Proportion of Wards by Distance >200m Category (10% intervals) and Dominant Group, Grouped by Year
-dist_category_data_10pct <- clean_data %>%
-  filter(year %in% years_distance, !is.na(dist_over_200)) %>%
-  mutate(
-    # Use cut to categorize into 10% intervals
-    dist_over_200_category = cut(
-      dist_over_200,
-      breaks = interval_breaks,
-      labels = interval_labels,
-      include.lowest = TRUE, # Include 0 in the first interval
-      right = FALSE # Intervals like [0, 0.1), [0.1, 0.2)
-    ) %>%
-      fct_drop() # Drop unused levels if any
-  ) %>%
-  filter(!is.na(dist_over_200_category)) # Filter out any NAs from categorization
-
-# Define a color palette for distance categories (e.g., a sequential blue palette)
-# Ensure the colors match the order of your labels
-dist_interval_colors_10pct <- get_blues_palette(length(interval_labels))
-names(dist_interval_colors_10pct) <- interval_labels # Assign names to match labels
-
-if (nrow(dist_category_data_10pct) > 0) {
-  ggplot(
-    dist_category_data_10pct,
-    aes(x = dominent_pop_group, fill = dist_over_200_category)
-  ) +
-    geom_bar(position = "fill") + # 'fill' makes it a proportional stacked bar chart
-    facet_wrap(~year, scales = "free_y") +
-    labs(
-      title = "Proportion of Wards by Distance >200m (10% Intervals) and Dominant Group",
-      x = "Dominant Population Group",
-      y = "Proportion of Wards",
-      fill = "Distance Share Category"
-    ) +
-    theme_minimal(base_size = 13) +
-    theme(
-      axis.text.x = element_text(angle = 45, hjust = 1),
-      legend.position = "bottom"
-    ) +
-    scale_fill_manual(values = dist_interval_colors_10pct)
-  ggsave(
-    file.path(
-      OUTPUT_DIR,
-      "Plot 12 - wards_by_distance_10pct_category_yearly.png"
-    ),
-    width = 12,
-    height = 8
-  )
-} else {
-  message("No data to plot wards by distance 10pct category yearly.")
-}
-
-# Plot 13: Proportion of Wards by Interruption Frequency Category (10% intervals) and Dominant Group, Grouped by Year
-interruption_category_data_10pct <- clean_data %>%
-  filter(year %in% years_interrupt, !is.na(interruption_freq)) %>%
-  mutate(
-    # Use cut to categorize into 10% intervals
-    interruption_freq_category = cut(
-      interruption_freq,
-      breaks = interval_breaks,
-      labels = interval_labels,
-      include.lowest = TRUE,
-      right = FALSE
-    ) %>%
-      fct_drop() # Drop unused levels if any
-  ) %>%
-  filter(!is.na(interruption_freq_category))
-
-# Define a color palette for interruption categories (e.g., a sequential red palette)
-interrupt_interval_colors_10pct <- get_reds_palette(length(interval_labels))
-names(interrupt_interval_colors_10pct) <- interval_labels # Assign names to match labels
-
-if (nrow(interruption_category_data_10pct) > 0) {
-  ggplot(
-    interruption_category_data_10pct,
-    aes(x = dominent_pop_group, fill = interruption_freq_category)
-  ) +
-    geom_bar(position = "fill") +
-    facet_wrap(~year, scales = "free_y") +
-    labs(
-      title = "Proportion of Wards by Interruption Frequency (10% Intervals) and Dominant Group",
-      x = "Dominant Population Group",
-      y = "Proportion of Wards",
-      fill = "Interruption Share Category"
-    ) +
-    theme_minimal(base_size = 13) +
-    theme(
-      axis.text.x = element_text(angle = 45, hjust = 1),
-      legend.position = "bottom"
-    ) +
-    scale_fill_manual(values = interrupt_interval_colors_10pct)
-  ggsave(
-    file.path(
-      OUTPUT_DIR,
-      "Plot 13 - wards_by_interruption_10pct_category_yearly.png"
-    ),
-    width = 12,
-    height = 8
-  )
-} else {
-  message("No data to plot wards by interruption 10pct category yearly.")
-}
-
-# Plot 14: Proportion of Wards by Income Category (10% intervals) and Dominant Group, Grouped by Year
-# For income, the range is much larger than 0-1, so we need to adjust breaks and labels.
-# First, determine income breaks based on the actual range of income data.
-# Using 10 intervals for income, similar to 10% for shares.
 income_breaks_10pct_raw <- quantile(
   clean_data$income,
   probs = seq(0, 1, by = 0.1),
@@ -622,37 +680,7 @@ income_interval_colors_10pct <- get_greens_palette(length(
 ))
 names(income_interval_colors_10pct) <- income_interval_labels_10pct_new # Assign names to match labels
 
-
-if (nrow(income_category_data_10pct) > 0) {
-  ggplot(
-    income_category_data_10pct,
-    aes(x = dominent_pop_group, fill = income_category)
-  ) +
-    geom_bar(position = "fill") + # 'fill' makes it a proportional stacked bar chart
-    facet_wrap(~year, scales = "free_y") +
-    labs(
-      title = "Proportion of Wards by Income (10% Intervals) and Dominant Group",
-      x = "Dominant Population Group",
-      y = "Proportion of Wards",
-      fill = "Income Category"
-    ) +
-    theme_minimal(base_size = 13) +
-    theme(
-      axis.text.x = element_text(angle = 45, hjust = 1),
-      legend.position = "bottom"
-    ) +
-    scale_fill_manual(values = income_interval_colors_10pct)
-  ggsave(
-    file.path(
-      OUTPUT_DIR,
-      "Plot 14 - wards_by_income_10pct_category_yearly.png"
-    ),
-    width = 12,
-    height = 8
-  )
-} else {
-  message("No data to plot wards by income 10pct category yearly.")
-}
+### Linerar regression
 
 # Fit models for water interruptions
 models_interrupt <- map(
