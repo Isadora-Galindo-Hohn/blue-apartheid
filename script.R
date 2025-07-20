@@ -143,7 +143,10 @@ for (yr in years) {
     p <- ggplot(yearly_data, aes(x = log(yearly_data$income), fill = dominent_pop_group)) +
       geom_density(alpha = 0.6) +
       labs(
-        title = paste("Distribution of Income by Dominant Population Group -", yr),
+        title = paste(
+          "Distribution of Income by Dominant Population Group -",
+          yr
+        ),
         x = "Average Monthly Household Income (log scale)",
         y = "Density",
         fill = "Dominant Group"
@@ -155,9 +158,12 @@ for (yr in years) {
       ) +
       scale_x_continuous(breaks = log_income_breaks, labels = log_income_labels) +
       scale_fill_manual(values = group_colors)
-    
+
     ggsave(
-      filename = file.path(OUTPUT_DIR, paste0("Plot 1 - income_distribution_", yr, ".png")),
+      filename = file.path(
+        OUTPUT_DIR,
+        paste0("Plot 1 - income_distribution_", yr, ".png")
+      ),
       plot = p,
       width = 10,
       height = 6
@@ -224,7 +230,10 @@ income_summary_table <- clean_data %>%
   )
 
 # Render
-kable(income_summary_table, caption = "Table X: Income (Mean ± SD) and Ward Count by Dominant Group and Year") %>%
+kable(
+  income_summary_table,
+  caption = "Table X: Income (Mean ± SD) and Ward Count by Dominant Group and Year"
+) %>%
   kable_styling(full_width = FALSE)
 
 # Prepare summary data
@@ -274,7 +283,12 @@ ggsave("output/income_mean_sd_ribbon_by_group_year.png", width = 10, height = 6)
 combined_income_plot <- wrap_plots(income_plots_by_year, ncol = 2) +
   plot_annotation(title = "Income Distribution by Dominant Group (2009–2024)")
 
-ggsave("output/combined_income_distribution_by_year.png", combined_income_plot, width = 14, height = 10)
+ggsave(
+  "output/combined_income_distribution_by_year.png",
+  combined_income_plot,
+  width = 14,
+  height = 10
+)
 
 # Summary by group
 share_dom_summary <- all_data %>%

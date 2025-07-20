@@ -16,14 +16,15 @@ get_municipality_filename <- function(year) {
   if (year == 2014) {
     year <- 2011
   }
-  if (year == 2020 || year == 2024) {
+  if (year == 2022 || year == 2024) {
     year <- 2018
   }
   if (year == 2018) {
     # For 2018 and 2020, use the specific shapefile
     manicipality_shp_file <- paste0(
       shp_path_maps,
-      "2018/M/MDB_Local_Municipal_Boundary_2018.shp"
+
+      "2018/MDBLocalMunicipalBoundary2018.gdb/MDB_Local_Municipal_Boundary_2018.shp"
     )
   } else {
     # For other years, construct the path dynamically
@@ -36,7 +37,6 @@ get_municipality_filename <- function(year) {
       "a00000009.gdbtable"
     )
   }
-  message("Municipality ", manicipality_shp_file)
   return(manicipality_shp_file)
 }
 
@@ -55,7 +55,6 @@ generate_and_save_map <- function(
   map_title,
   data_source = clean_data
 ) {
-  message("Generating map for year: ", year, " and variable: ", variable_name)
   shp_path_maps <- "../QGIS/"
   # Construct shapefile path for the current year
   shape_files <- get_shape_files(year)
@@ -78,14 +77,18 @@ generate_and_save_map <- function(
 
   # Shapefile includes manicupalities for whole south africa
   # Filter for gauteng
-  municipality_sf <- municipality_sf %>%
-    filter(ProvinceCode == "GT")
+  if (year < 2018) {
+    municipality_sf <- municipality_sf %>%
+      filter(ProvinceCode == "GT")
+  } else {
+    municipality_sf <- municipality_sf %>%
+      filter(PROVINCE == "Gauteng")
+  }
 
   current_data <- data_source %>% filter(year == .env$year)
-  current_wards_sf$avrage_inc <- as.integer(current_wards_sf$avrage_inc)
-  current_wards_sf$non_white <- as.integer(current_wards_sf$non_white)
-  current_wards_sf$dist_over_ <- as.integer(current_wards_sf$dist_over_)
-  current_wards_sf$interrupti <- as.integer(current_wards_sf$interrupti)
+  current_wards_sf$non_white <- as.numeric(current_wards_sf$non_white)
+  current_wards_sf$dist_over_ <- as.numeric(current_wards_sf$dist_over_)
+  current_wards_sf$interrupti <- as.numeric(current_wards_sf$interrupti)
   current_wards_sf$total_pop <- as.integer(current_wards_sf$total_pop)
 
   # --- Data Preprocessing for Specific Map Types ---
@@ -115,9 +118,8 @@ generate_and_save_map <- function(
     )
     legend_name <- "Dominant Population Group"
     map_var_aes <- sym("map_var") # Use the new 'map_var' column
-  } else if (variable_name == "avrage_income_bracket") {
+  } else if (variable_name == "income_bracket") {
     # Income bracket
-    # Create income brackets from numerical 'income' using the dynamically generated breaks/labels
     breaks = c(-3, -2, -1, 0, 200, 600, 1200, 2400, 4800, 9600, Inf)
     labels = c(
       "No Data",
@@ -133,24 +135,29 @@ generate_and_save_map <- function(
     )
     current_wards_sf <- current_wards_sf %>%
       mutate(
+        avrage_inc_num = ifelse(avrage_inc == "NaN", -2, as.numeric(avrage_inc))
+      )
+    current_wards_sf <- current_wards_sf %>%
+      mutate(
         map_var = case_when(
-          is.na(avrage_income_bracket) ~ "No Data",
-          avrage_income_bracket == "NaN" ~ "Respondent refused or did not know",
-          avrage_income_bracket == 0 ~ "No Income",
+          is.na(current_wards_sf$avrage_inc_num) ~ "No Data",
+          current_wards_sf$avrage_inc_num == -2 ~
+            "Respondent refused or did not know",
+          current_wards_sf$avrage_inc_num == 0 ~ "No Income",
           TRUE ~
-            as.character(cut(
-              parse_number(avrage_income_bracket),
+            cut(
+              current_wards_sf$avrage_inc_num,
               breaks = breaks,
               labels = labels,
               include.lowest = TRUE,
               right = FALSE
-            ))
+            )
         ),
         map_var = factor(map_var, levels = labels)
       )
 
     map_colors <- setNames(
-      c("grey80", "red", get_greens_palette(length(labels) - 2)),
+      c("grey80", "gray40", get_greens_palette(length(labels) - 2)),
       labels
     )
     scale_fn <- scale_fill_manual(
@@ -163,14 +170,13 @@ generate_and_save_map <- function(
     map_var_aes <- sym("map_var")
   } else if (variable_name == "avrage_ace") {
     # Average access to water
-    # Ensure it's a factor and handle NA
     labels <- c(
       "Piped, into dwelling",
       "Piped, into yard only",
       "Street taps or standpipes",
       "Other"
     )
-    manual_colors <- c("darkblue", "blue", "lightblue", "grey50")
+    manual_colors <- c("#7396e6", "#abcdef", "#edfbff", "gray50")
     current_wards_sf <- current_wards_sf %>%
       mutate(
         map_var = factor(
@@ -233,11 +239,19 @@ generate_and_save_map <- function(
     legend_name <- "Population Density"
     map_var_aes <- sym("map_var_bin")
   } else if (variable_name == "non_white") {
-    breaks <- c(0, 0.5, 1, 1.5, 2, Inf)
-    labels <- c("Very low", "Low", "Moderate", "High", "Very high")
+    breaks <- c(0, 0.60, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90, 0.95, Inf)
+    labels <- c(
+      "0% - 60%",
+      "60% - 65%",
+      "65% - 70%",
+      "70% - 75%",
+      "75% - 80%",
+      "80% - 85%",
+      "85% - 90%",
+      "90% - 95%",
+      "95%+"
+    )
     colors <- rev(heat.colors(length(breaks) - 1))
-    message("Creating map for non_white variable")
-    message(names(current_wards_sf))
     # KL-divergence
     current_wards_sf <- current_wards_sf %>%
       mutate(
@@ -251,11 +265,11 @@ generate_and_save_map <- function(
       )
     scale_fn <- scale_fill_brewer(
       palette = "YlOrRd",
-      na.value = "grey80",
-      name = "Racial Segregation (KL Divergence)",
+      na.value = "gray80",
+      name = "Racial clustering (non white population share)",
       drop = FALSE
     )
-    legend_name <- "Racial Segregation (KL Divergence)"
+    legend_name <- "Racial clustering (non white population share)"
     map_var_aes <- sym("map_var")
   } else if (variable_name == "interrupti") {
     # Water interruption frequency
@@ -277,7 +291,7 @@ generate_and_save_map <- function(
       mutate(
         # Step 1: cut() for numeric bins only
         map_var = cut(
-          parse_number(current_wards_sf$interrupti),
+          current_wards_sf$interrupti,
           breaks = breaks,
           labels = labels,
           include.lowest = TRUE,
@@ -345,33 +359,24 @@ generate_and_save_map <- function(
     return(NULL)
   }
 
-  municipality_plot <- ggplot() +
-    geom_sf(data = municipality_sf, fill = NA, color = "red", linewidth = 1) +
-    ggtitle("Municipality Borders Only")
-
-  test_plot <- ggplot(mtcars, aes(mpg, wt)) + geom_point()
-  ggsave("/tmp/test_plot.png", plot = test_plot)
-  message("ggsave finished")
-
   # --- Create the Plot --- p <- ggplot(current_wards_sf) +
   # Decide the first layer
   if (!is.null(map_var_aes) && is.symbol(map_var_aes)) {
     ward_layer <- geom_sf(
       data = current_wards_sf,
       aes(fill = !!map_var_aes),
-      color = "white",
+      color = "black",
       linewidth = 0.1
     )
   } else {
     ward_layer <- geom_sf(
       data = current_wards_sf,
-      color = "white",
+      color = "black",
       linewidth = 0.1
     )
   }
 
   # Build the plot
-
   p <- ggplot() +
     ward_layer +
     geom_sf(
@@ -383,12 +388,13 @@ generate_and_save_map <- function(
     scale_fn +
     labs(
       title = paste0(map_title, " (", year, ")"),
-      caption = "Source: Your Study Data"
+      caption = paste("Source:", data_legend_sources[as.character(year)])
     ) +
     theme_minimal(base_size = 12) +
     theme(
       plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
-      legend.position = "right", # Default position
+      legend.position = "bottom", # Default position
+      plot.caption = element_text(hjust = 0.5),
       legend.title = element_text(size = 10),
       legend.text = element_text(size = 9),
       panel.grid.major = element_blank(),
