@@ -119,9 +119,8 @@ generate_and_save_map <- function(
     )
     legend_name <- "Dominant Population Group"
     map_var_aes <- sym("map_var") # Use the new 'map_var' column
-  } else if (variable_name == "avrage_income_bracket") {
+  } else if (variable_name == "income_bracket") {
     # Income bracket
-    # Create income brackets from numerical 'income' using the dynamically generated breaks/labels
     breaks = c(-3, -2, -1, 0, 200, 600, 1200, 2400, 4800, 9600, Inf)
     labels = c(
       "No Data",
@@ -138,12 +137,13 @@ generate_and_save_map <- function(
     current_wards_sf <- current_wards_sf %>%
       mutate(
         map_var = case_when(
-          is.na(avrage_income_bracket) ~ "No Data",
-          avrage_income_bracket == "NaN" ~ "Respondent refused or did not know",
-          avrage_income_bracket == 0 ~ "No Income",
+          is.na(current_wards_sf$avrage_inc) ~ "No Data",
+          current_wards_sf$avrage_inc == "NaN" ~
+            "Respondent refused or did not know",
+          current_wards_sf$avrage_inc == 0 ~ "No Income",
           TRUE ~
             as.character(cut(
-              parse_number(avrage_income_bracket),
+              current_wards_sf$avrage_inc,
               breaks = breaks,
               labels = labels,
               include.lowest = TRUE,
