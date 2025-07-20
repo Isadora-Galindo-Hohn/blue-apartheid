@@ -88,8 +88,8 @@ generate_and_save_map <- function(
   current_data <- data_source %>% filter(year == .env$year)
   current_wards_sf$avrage_inc <- as.integer(current_wards_sf$avrage_inc)
   current_wards_sf$non_white <- as.numeric(current_wards_sf$non_white)
-  current_wards_sf$dist_over_ <- as.integer(current_wards_sf$dist_over_)
-  current_wards_sf$interrupti <- as.integer(current_wards_sf$interrupti)
+  current_wards_sf$dist_over_ <- as.numeric(current_wards_sf$dist_over_)
+  current_wards_sf$interrupti <- as.numeric(current_wards_sf$interrupti)
   current_wards_sf$total_pop <- as.integer(current_wards_sf$total_pop)
 
   # --- Data Preprocessing for Specific Map Types ---
