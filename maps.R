@@ -385,12 +385,13 @@ generate_and_save_map <- function(
     scale_fn +
     labs(
       title = paste0(map_title, " (", year, ")"),
-      caption = "Source: Your Study Data"
+      caption = paste("Source:", data_legend_sources[as.character(year)])
     ) +
     theme_minimal(base_size = 12) +
     theme(
       plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
       legend.position = "bottom", # Default position
+      plot.caption = element_text(hjust = 0.5),
       legend.title = element_text(size = 10),
       legend.text = element_text(size = 9),
       panel.grid.major = element_blank(),
