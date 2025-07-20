@@ -1,3 +1,5 @@
+get_greens_palette <- colorRampPalette(brewer.pal(9, "Greens"))
+
 check_file <- function(filename) {
   # Check if shapefile exists
   if (!file.exists(filename)) {
