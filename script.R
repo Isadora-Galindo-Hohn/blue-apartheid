@@ -545,49 +545,6 @@ if (nrow(distance_trajectories) > 0) {
 
 
 ####
-income_breaks_10pct_raw <- quantile(
-  clean_data$income,
-  probs = seq(0, 1, by = 0.1),
-  na.rm = TRUE
-)
-# Ensure breaks are unique and sorted to avoid cut.default() errors
-income_breaks_unique <- unique(sort(income_breaks_10pct_raw))
-
-# Create labels based on the actual number of unique breaks
-# There will be (length(income_breaks_unique) - 1) intervals
-num_income_intervals <- length(income_breaks_unique) - 1
-income_interval_labels_10pct_new <- character(num_income_intervals)
-
-for (i in 1:num_income_intervals) {
-  lower_bound <- round(income_breaks_unique[i])
-  upper_bound <- round(income_breaks_unique[i + 1])
-  if (i == num_income_intervals) {
-    # For the last interval, handle it as "RXXX+" for the highest bracket
-    income_interval_labels_10pct_new[i] <- paste0("R", lower_bound, "+")
-  } else {
-    income_interval_labels_10pct_new[i] <- paste0(
-      "R",
-      lower_bound,
-      "-R",
-      upper_bound
-    )
-  }
-}
-
-income_category_data_10pct <- clean_data %>%
-  filter(!is.na(income)) %>% # Filter out NAs for income
-  mutate(
-    # Use cut to categorize into 10% intervals based on income quantiles
-    income_category = cut(
-      income,
-      breaks = income_breaks_unique, # Use unique breaks
-      labels = income_interval_labels_10pct_new, # Use dynamically generated labels
-      include.lowest = TRUE,
-      right = FALSE # Intervals like [0, 0.1), [0.1, 0.2)
-    ) %>%
-      fct_drop() # Drop unused levels if any
-  ) %>%
-  filter(!is.na(income_category)) # Filter out any NAs from categorization
 
 ### Linerar regression
 
@@ -694,11 +651,11 @@ cat("---\n")
 combined_plot_colors <- c(
   "log(income)" = "black",
   "non_white" = "darkgreen",
-  "Black African" = "#E41A1C", # Red
-  "Coloured" = "#377EB8", # Blue
-  "Indian/Asian" = "#4DAF4A", # Green (now covers both variations)
-  "White" = "#FF7F00", # Orange
-  "Other" = "#984EA3" # Purple
+  "Black African" = "#E41A1C", 
+  "Coloured" = "#377EB8", 
+  "Indian/Asian" = "#4DAF4A", 
+  "White" = "#FF7F00", 
+  "Other" = "#984EA3" 
 )
 
 
@@ -730,7 +687,7 @@ ggsave(
 )
 
 
-# 🟡 Updated Plot 7: Distance Coefficients
+#Plot 7: Distance Coefficients
 ggplot(
   summary_distance,
   aes(x = factor(year), y = estimate, color = plot_term, group = plot_term)
