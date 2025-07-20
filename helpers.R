@@ -36,11 +36,10 @@ run_model <- function(df, y_var, year) {
     return(NULL)
   }
 
-  formula <- as.formula(paste(
-    y_var,
-    "~ log(income) + dominent_pop_group + non_white"
-  ))
-
+  formula <- as.formula(
+    paste0(y_var, " ~ log(income + 1) + non_white + dominent_pop_group")
+  )
+  
   model_result <- tryCatch(
     lm(formula, data = df_filtered),
     error = function(e) {

@@ -575,16 +575,19 @@ summary_distance <- map2_dfr(
   ~ tidy(.x) %>% mutate(year = as.numeric(.y))
 )
 
+print(colnames(summary_interrupt))
+
+
 # Add significance labels and clean plot_term for better legends
 summary_interrupt <- summary_interrupt %>%
   filter(term != "(Intercept)") %>%
   mutate(
     plot_term = case_when(
+      term == "log(income + 1)" ~ "log(income + 1)",
       str_detect(term, "dominent_pop_group") ~
         str_replace(term, "dominent_pop_group", ""),
       TRUE ~ term
     ),
-    # IMPORTANT: Trim any leading/trailing whitespace
     plot_term = trimws(plot_term),
     significance = case_when(
       p.value < 0.001 ~ "***",
@@ -593,8 +596,8 @@ summary_interrupt <- summary_interrupt %>%
       p.value < 0.1 ~ ".",
       TRUE ~ ""
     )
-    # The factor conversion is now done immediately before plotting to ensure freshness
   )
+
 
 summary_distance <- summary_distance %>%
   filter(term != "(Intercept)") %>%
@@ -620,7 +623,7 @@ summary_distance <- summary_distance %>%
 
 # Define the desired order for factor levels for 'plot_term' globally
 desired_plot_term_levels <- c(
-  "log(income)",
+  "log(income + 1)",
   "non_white",
   "Coloured",
   "Indian/Asian",
@@ -649,7 +652,7 @@ cat("---\n")
 
 # Define a combined palette that ensures all needed colors are together and explicitly listed.
 combined_plot_colors <- c(
-  "log(income)" = "black",
+  "log(income + 1)" = "black",
   "non_white" = "darkgreen",
   "Black African" = "#E41A1C", 
   "Coloured" = "#377EB8", 
@@ -855,6 +858,8 @@ for (i in 1:num_income_intervals_maps) {
     )
   }
 }
+
+
 
 # Define a color palette for income categories for maps
 # Re-using get_greens_palette from above
