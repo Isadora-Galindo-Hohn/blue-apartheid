@@ -357,27 +357,19 @@ generate_and_save_map <- function(
     return(NULL)
   }
 
-  municipality_plot <- ggplot() +
-    geom_sf(data = municipality_sf, fill = NA, color = "red", linewidth = 1) +
-    ggtitle("Municipality Borders Only")
-
-  test_plot <- ggplot(mtcars, aes(mpg, wt)) + geom_point()
-  ggsave("/tmp/test_plot.png", plot = test_plot)
-  message("ggsave finished")
-
   # --- Create the Plot --- p <- ggplot(current_wards_sf) +
   # Decide the first layer
   if (!is.null(map_var_aes) && is.symbol(map_var_aes)) {
     ward_layer <- geom_sf(
       data = current_wards_sf,
       aes(fill = !!map_var_aes),
-      color = "white",
+      color = "black",
       linewidth = 0.1
     )
   } else {
     ward_layer <- geom_sf(
       data = current_wards_sf,
-      color = "white",
+      color = "black",
       linewidth = 0.1
     )
   }
