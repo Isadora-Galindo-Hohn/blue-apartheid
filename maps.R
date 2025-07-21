@@ -82,7 +82,7 @@ generate_and_save_map <- function(
       filter(ProvinceCode == "GT")
   } else {
     municipality_sf <- municipality_sf %>%
-      filter(PROVINCE == "Gauteng")
+      filter(PROVINCE == "GT")
   }
 
   current_data <- data_source %>% filter(year == .env$year)
