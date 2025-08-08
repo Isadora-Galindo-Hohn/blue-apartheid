@@ -394,6 +394,7 @@ generate_and_save_map <- function(
     theme(
       plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
       legend.position = "bottom", # Default position
+      legend.title.position = "top",
       plot.caption = element_text(hjust = 0.5),
       legend.title = element_text(size = 10),
       legend.text = element_text(size = 9),

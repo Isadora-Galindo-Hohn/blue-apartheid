@@ -607,7 +607,6 @@ summary_distance <- summary_distance %>%
         str_replace(term, "dominent_pop_group", ""),
       TRUE ~ term
     ),
-    # IMPORTANT: Trim any leading/trailing whitespace
     plot_term = trimws(plot_term),
     significance = case_when(
       p.value < 0.001 ~ "***",
@@ -616,7 +615,6 @@ summary_distance <- summary_distance %>%
       p.value < 0.1 ~ ".",
       TRUE ~ ""
     )
-    # The factor conversion is now done immediately before plotting to ensure freshness
   )
 
 # --- NEW: Re-assert plot_term as a factor and add structural diagnostics ---
@@ -901,6 +899,6 @@ map_specs <- list(
 for (spec in map_specs) {
   message(paste0("\n--- Generating ", spec$title, " Maps ---"))
   for (year in spec$years) {
-    generate_and_save_map(year, spec$var, spec$title, clean_data)
+    generate_and_save_map(year, spec$var, spec$title, clean_data) 
   }
 }
