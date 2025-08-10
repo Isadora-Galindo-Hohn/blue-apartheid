@@ -120,19 +120,16 @@ generate_and_save_map <- function(
     map_var_aes <- sym("map_var") # Use the new 'map_var' column
   } else if (variable_name == "income_bracket") {
     # Income bracket
-    breaks = c(-3, -2, -1, 0, 200, 600, 1200, 2400, 4800, 9600, Inf)
-    labels = c(
-      "No Data",
-      "Respondent refused or did not know",
-      "No Income",
-      "R0 - R200",
-      "R200 - R600",
-      "R600 - R1200",
-      "R1200 - R2400",
-      "R2400 - R4800",
-      "R4800 - R9600",
-      "R9600+"
-    )
+    breaks <- income_midpoints_numeric
+    breaks <- breaks[
+      !is.na(breaks) & breaks != "NaN" & breaks != 300000
+    ]
+    breaks <- c(-3, -2, -1, breaks, Inf)
+    labels <- income_labels_text
+    # "No data" -> "No Data"
+    labels <- labels[labels != "No data"]
+    labels <- c("No Data", labels)
+
     current_wards_sf <- current_wards_sf %>%
       mutate(
         avrage_inc_num = ifelse(avrage_inc == "NaN", -2, as.numeric(avrage_inc))
@@ -157,7 +154,7 @@ generate_and_save_map <- function(
       )
 
     map_colors <- setNames(
-      c("grey80", "gray40", get_greens_palette(length(labels) - 2)),
+      c("gray80", "gray40", get_greens_palette(length(labels) - 2)),
       labels
     )
     scale_fn <- scale_fill_manual(
