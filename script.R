@@ -73,43 +73,7 @@ all_data <- all_data %>%
   )
 
 # Filter data for regression: remove NAs in key predictors and handle log(income)
-clean_data <- all_data 
-
-# --- Define custom income axis breaks and labels for plots ---
-# These are the midpoints from your income bracket definition
-income_midpoints_numeric <- c(
-  NA,
-  "NaN",
-  0,
-  200,
-  600,
-  1200,
-  2400,
-  4800,
-  9600,
-  19200,
-  38400,
-  76800,
-  153600,
-  300000
-)
-# Corresponding labels (can be original brackets or just the midpoints)
-income_labels_text <- c(
-  "No data",
-  "Refuse or Don't know",
-  "No Income",
-  "R1-R400",
-  "R401-R800",
-  "R801-R1.6k",
-  "R1.6k-R3.2k",
-  "R3.2k-R6.4k",
-  "R6.4k-R12.8k",
-  "R12.8k-R25.6k",
-  "R25.6k-R51.2k",
-  "R51.2k-R102.4k",
-  "R102.4k-R204.8k",
-  "R204.8k+"
-)
+clean_data <- all_data
 
 
 ##### Creating log income plots
