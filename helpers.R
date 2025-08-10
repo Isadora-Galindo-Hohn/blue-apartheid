@@ -1,4 +1,6 @@
-get_greens_palette <- colorRampPalette(brewer.pal(9, "Greens"))
+get_greens_palette <- function(n) {
+  colorRampPalette(brewer.pal(9, "Greens"))(n)
+}
 
 check_file <- function(filename) {
   # Check if shapefile exists
