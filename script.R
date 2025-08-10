@@ -21,7 +21,7 @@ source("constants.R")
 
 # Set working directory and data path
 setwd(".")
-data_path <- "../" 
+data_path <- "../"
 years <- c(2009, 2011, 2014, 2016, 2018, 2022, 2024)
 
 # Define years for each dependent variable upfront
@@ -121,20 +121,26 @@ numeric_income <- clean_data$income %>%
   )
 
 # Calculate the log of these midpoints to use as breaks on the log-transformed axis
-log_income_breaks <- log(as.numeric(income_midpoints_numeric[3:length(income_midpoints_numeric)])+1)
+log_income_breaks <- log(
+  as.numeric(income_midpoints_numeric[3:length(income_midpoints_numeric)]) + 1
+)
 log_income_labels <- income_labels_text[3:length(income_labels_text)]
 
 # Plot 1: Income Distribution by Dominant Population Group (across all years)
 for (yr in years) {
-  yearly_data <- clean_data %>% filter(
-    !is.na(clean_data$income),
-    !clean_data$income == "NaN",
-    clean_data$year == yr    
-  )
+  yearly_data <- clean_data %>%
+    filter(
+      !is.na(clean_data$income),
+      !clean_data$income == "NaN",
+      clean_data$year == yr
+    )
 
-  year  
+  year
   if (nrow(yearly_data) > 0) {
-    p <- ggplot(yearly_data, aes(x = log(yearly_data$income+1), fill = dominent_pop_group)) +
+    p <- ggplot(
+      yearly_data,
+      aes(x = log(yearly_data$income + 1), fill = dominent_pop_group)
+    ) +
       geom_density(alpha = 0.6) +
       labs(
         title = paste(
@@ -150,7 +156,10 @@ for (yr in years) {
         legend.position = "bottom",
         axis.text.x = element_text(angle = 45, hjust = 1)
       ) +
-      scale_x_continuous(breaks = log_income_breaks, labels = log_income_labels) +
+      scale_x_continuous(
+        breaks = log_income_breaks,
+        labels = log_income_labels
+      ) +
       scale_fill_manual(values = group_colors)
 
     ggsave(
@@ -169,13 +178,14 @@ for (yr in years) {
 
 # Create one plot per year
 income_plots_by_year <- lapply(years, function(y) {
-  df_year <- clean_data %>% filter(
-    year == y,
-    !is.na(clean_data$income),
-    !clean_data$income == "NaN"
-  )
-  
-  ggplot(df_year, aes(x = log(df_year$income+1), fill = dominent_pop_group)) +
+  df_year <- clean_data %>%
+    filter(
+      year == y,
+      !is.na(clean_data$income),
+      !clean_data$income == "NaN"
+    )
+
+  ggplot(df_year, aes(x = log(df_year$income + 1), fill = dominent_pop_group)) +
     geom_density(alpha = 0.6) +
     labs(
       title = paste("Income Distribution -", y),
@@ -186,7 +196,10 @@ income_plots_by_year <- lapply(years, function(y) {
     theme_minimal(base_size = 11) +
     scale_x_continuous(breaks = log_income_breaks, labels = log_income_labels) +
     scale_fill_manual(values = group_colors) +
-    theme(legend.position = "none", axis.text.x = element_text(angle = 45, vjust=1, hjust=1))
+    theme(
+      legend.position = "none",
+      axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)
+    )
 })
 
 # Combine into one figure using patchwork
@@ -240,13 +253,16 @@ income_summary_for_plot <- clean_data %>%
   )
 
 # Plot with ribbon for ±1 SD
-ggplot(income_summary_for_plot, aes(
-  x = factor(year),
-  y = mean_income,
-  group = dominent_pop_group,
-  color = dominent_pop_group,
-  fill = dominent_pop_group
-)) +
+ggplot(
+  income_summary_for_plot,
+  aes(
+    x = factor(year),
+    y = mean_income,
+    group = dominent_pop_group,
+    color = dominent_pop_group,
+    fill = dominent_pop_group
+  )
+) +
   geom_ribbon(
     aes(
       ymin = mean_income - sd_income,
@@ -299,7 +315,10 @@ share_dom_total <- share_dom_summary %>%
 share_dom_combined <- bind_rows(share_dom_summary, share_dom_total)
 
 # Plot
-ggplot(share_dom_combined, aes(x = factor(year), y = percent_over_95, group = dominent_pop_group)) +
+ggplot(
+  share_dom_combined,
+  aes(x = factor(year), y = percent_over_95, group = dominent_pop_group)
+) +
   geom_line(aes(color = dominent_pop_group), linewidth = 1.2) +
   geom_point(aes(color = dominent_pop_group), size = 2.5) +
   labs(
@@ -337,7 +356,10 @@ dominant_group_share <- dominant_group_counts %>%
   mutate(share = ward_count / total_wards * 100)
 
 # Plot
-ggplot(dominant_group_share, aes(x = factor(year), y = share, group = dominent_pop_group)) +
+ggplot(
+  dominant_group_share,
+  aes(x = factor(year), y = share, group = dominent_pop_group)
+) +
   geom_line(aes(color = dominent_pop_group), linewidth = 1.2) +
   geom_point(aes(color = dominent_pop_group), linewidth = 2) +
   labs(
@@ -350,10 +372,14 @@ ggplot(dominant_group_share, aes(x = factor(year), y = share, group = dominent_p
   scale_color_manual(values = group_colors) +
   theme_minimal(base_size = 13) +
   theme(legend.position = "bottom")
-  
+
 
 # Save to file
-ggsave("output/ward_dominance_share_by_group_over_time.png", width = 10, height = 6)
+ggsave(
+  "output/ward_dominance_share_by_group_over_time.png",
+  width = 10,
+  height = 6
+)
 
 
 ###### END
@@ -367,7 +393,7 @@ plot_data_distance <- clean_data %>%
 if (nrow(plot_data_distance) > 0) {
   ggplot(
     plot_data_distance,
-    aes(x = log(income+1), y = dist_over_200, color = dominent_pop_group)
+    aes(x = log(income + 1), y = dist_over_200, color = dominent_pop_group)
   ) +
     geom_point(alpha = 0.3) +
     # Use GLM with quasibinomial family for proportion data to keep predictions between 0 and 1
@@ -388,7 +414,7 @@ if (nrow(plot_data_distance) > 0) {
     ) +
     theme_minimal(base_size = 13) +
     theme(legend.position = "bottom") +
-    scale_y_continuous(labels = scales::percent_format(scale = 100))+
+    scale_y_continuous(labels = scales::percent_format(scale = 100)) +
     scale_x_continuous(
       breaks = log_income_breaks,
       labels = log_income_labels
@@ -416,7 +442,7 @@ plot_data_interrupt <- clean_data %>%
 if (nrow(plot_data_interrupt) > 0) {
   ggplot(
     plot_data_interrupt,
-    aes(x = log(income+1), y = interruption_freq, color = dominent_pop_group)
+    aes(x = log(income + 1), y = interruption_freq, color = dominent_pop_group)
   ) +
     geom_point(alpha = 0.3) +
     # Use GLM with quasibinomial family for proportion data to keep predictions between 0 and 1
@@ -437,7 +463,7 @@ if (nrow(plot_data_interrupt) > 0) {
     ) +
     theme_minimal(base_size = 13) +
     theme(legend.position = "bottom") +
-    scale_y_continuous(labels = scales::percent_format(scale = 100))+
+    scale_y_continuous(labels = scales::percent_format(scale = 100)) +
     scale_x_continuous(
       breaks = log_income_breaks,
       labels = log_income_labels
@@ -489,7 +515,7 @@ if (nrow(interruption_trajectories) > 0) {
     theme_minimal(base_size = 13) +
     theme(legend.position = "bottom") +
     scale_x_continuous(breaks = years_interrupt) +
-    scale_y_continuous(labels = scales::percent_format(scale = 100))+
+    scale_y_continuous(labels = scales::percent_format(scale = 100)) +
     scale_color_manual(values = group_colors) # Apply consistent line colors
   ggsave(
     file.path(OUTPUT_DIR, "Plot 4 - interruption_trajectories_by_group.png"),
@@ -531,9 +557,9 @@ if (nrow(distance_trajectories) > 0) {
     ) +
     theme_minimal(base_size = 13) +
     theme(legend.position = "bottom") +
-    scale_y_continuous(labels = scales::percent_format(scale = 100))+
+    scale_y_continuous(labels = scales::percent_format(scale = 100)) +
     scale_x_continuous(breaks = years_distance) +
-    scale_color_manual(values = group_colors) 
+    scale_color_manual(values = group_colors)
   ggsave(
     file.path(OUTPUT_DIR, "Plot 5 - distance_trajectories_by_group.png"),
     width = 10,
@@ -652,11 +678,11 @@ cat("---\n")
 combined_plot_colors <- c(
   "log(income + 1)" = "black",
   "non_white" = "darkgreen",
-  "Black African" = "#E41A1C", 
-  "Coloured" = "#377EB8", 
-  "Indian/Asian" = "#4DAF4A", 
-  "White" = "#FF7F00", 
-  "Other" = "#984EA3" 
+  "Black African" = "#E41A1C",
+  "Coloured" = "#377EB8",
+  "Indian/Asian" = "#4DAF4A",
+  "White" = "#FF7F00",
+  "Other" = "#984EA3"
 )
 
 
@@ -858,7 +884,6 @@ for (i in 1:num_income_intervals_maps) {
 }
 
 
-
 # Define a color palette for income categories for maps
 # Re-using get_greens_palette from above
 income_interval_colors_10pct_maps <- get_greens_palette(length(
@@ -899,6 +924,6 @@ map_specs <- list(
 for (spec in map_specs) {
   message(paste0("\n--- Generating ", spec$title, " Maps ---"))
   for (year in spec$years) {
-    generate_and_save_map(year, spec$var, spec$title, clean_data) 
+    generate_and_save_map(year, spec$var, spec$title, clean_data)
   }
 }
