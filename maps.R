@@ -13,7 +13,7 @@ get_municipality_filename <- function(year) {
   # Define the path to the shapefiles
   shp_path_maps <- "../shp/"
   current_shp_file <- NULL
-  if (year == 2015) {
+  if (year == 2014) {
     year <- 2011
   }
   if (year == 2022 || year == 2024) {
