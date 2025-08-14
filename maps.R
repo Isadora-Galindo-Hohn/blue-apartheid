@@ -156,7 +156,7 @@ generate_and_save_map <- function(
     all_levels <- c(
       labels,
       "No Income",
-      "Respondent refused or did not know",
+      "Respondent refused\nor did not know",
       "Missing Data"
     )
 
@@ -180,7 +180,7 @@ generate_and_save_map <- function(
         # Correctly label the special cases based on their original value
         map_var = as.character(map_var),
         map_var = case_when(
-          is.nan(avrage_inc_num) ~ "Respondent refused or did not know",
+          is.nan(avrage_inc_num) ~ "Respondent refused\nor did not know",
           avrage_inc_num == 0 ~ "No Income",
           is.na(map_var) ~ "Missing Data",
           TRUE ~ map_var
@@ -201,7 +201,7 @@ generate_and_save_map <- function(
       c(
         get_greens_palette(length(labels)), # Colors for the 11 income brackets
         "black", # Color for "No Income"
-        "gray80", # Color for "Respondent refused or did not know"
+        "gray80", # Color for "Respondent refused\nor did not know"
         "gray40" # Color for "Missing Data"
       ),
       all_levels
