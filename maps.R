@@ -13,7 +13,7 @@ get_municipality_filename <- function(year) {
   # Define the path to the shapefiles
   shp_path_maps <- "../shp/"
   current_shp_file <- NULL
-  if (year == 2014) {
+  if (year == 2015) {
     year <- 2011
   }
   if (year == 2022 || year == 2024) {
@@ -120,6 +120,19 @@ generate_and_save_map <- function(
     map_var_aes <- sym("map_var") # Use the new 'map_var' column
   } else if (variable_name == "income_bracket") {
     # Income bracket
+    breaks = c(-3, -2, -1, 0, 200, 600, 1200, 2400, 4800, 9600, Inf)
+    labels = c(
+      "No Data",
+      "Respondent refused or did not know",
+      "No Income",
+      "R0 - R200",
+      "R200 - R600",
+      "R600 - R1200",
+      "R1200 - R2400",
+      "R2400 - R4800",
+      "R4800 - R9600",
+      "R9600+"
+    )
     breaks <- income_midpoints_numeric
     breaks <- breaks[
       !is.na(breaks) & breaks != "NaN" & breaks != 300000
@@ -130,28 +143,73 @@ generate_and_save_map <- function(
     labels <- labels[labels != "No data"]
     labels <- c("No Data", labels)
 
+    print("Step 0")
+    print(table(current_wards_sf$avrage_inc, useNA = "ifany"))
+
     current_wards_sf <- current_wards_sf %>%
       mutate(
-        avrage_inc_num = ifelse(avrage_inc == "NaN", -2, as.numeric(avrage_inc))
+        avrage_inc_num = ifelse(
+          current_wards_sf$avrage_inc == "NaN",
+          -1,
+          suppressWarnings(as.numeric(current_wards_sf$avrage_inc)) # NAs expected so supress warnings
+        )
       )
+
+    current_wards_sf <- current_wards_sf %>%
+      mutate(
+        avrage_inc_num = ifelse(
+          current_wards_sf$avrage_inc == "NaN",
+          -1,
+          suppressWarnings(as.numeric(current_wards_sf$avrage_inc)) # NAs expected so supress warnings
+        )
+      )
+
+    print("Step 1")
+    print(table(current_wards_sf$avrage_inc_num, useNA = "ifany"))
+    current_wards_sf <- current_wards_sf %>%
+      mutate(
+        avrage_inc_num = ifelse(
+          is.na(current_wards_sf$avrage_inc),
+          -1,
+          suppressWarnings(as.numeric(current_wards_sf$avrage_inc)) # NAs expected so supress warnings
+        )
+      )
+
+    print("Step 2")
+    print(table(current_wards_sf$avrage_inc_num, useNA = "ifany"))
     current_wards_sf <- current_wards_sf %>%
       mutate(
         map_var = case_when(
-          is.na(current_wards_sf$avrage_inc_num) ~ "No Data",
-          current_wards_sf$avrage_inc_num == -2 ~
-            "Respondent refused or did not know",
-          current_wards_sf$avrage_inc_num == 0 ~ "No Income",
-          TRUE ~
-            cut(
-              current_wards_sf$avrage_inc_num,
-              breaks = breaks,
-              labels = labels,
-              include.lowest = TRUE,
-              right = FALSE
-            )
+          avrage_inc_num == -1 ~ "Respondent refused or did not know",
+          avrage_inc_num == -2 ~ "No Data",
+          avrage_inc_num == 0 ~ "No Income",
+          # TRUE ~
+          #   as.character(cut(
+          #     avrage_inc_num,
+          #     breaks = breaks,
+          #     labels = labels,
+          #     include.lowest = TRUE,
+          #     right = FALSE
+          #   ))
         ),
+        # map_var = ifelse(is.na(map_var), "No Data", map_var),
+        # map_var = factor(map_var, levels = labels)
+      )
+
+    print("Step 3")
+    print(table(current_wards_sf$map_var, useNA = "ifany"))
+
+    current_wards_sf <- current_wards_sf %>%
+      mutate(
+        map_var = as.character(map_var) ##,
+        # map_var = ifelse(is.na(map_var), "No Data", map_var)
+      ) %>%
+      mutate(
         map_var = factor(map_var, levels = labels)
       )
+
+    print("Step 4")
+    print(table(current_wards_sf$map_var, useNA = "ifany"))
 
     map_colors <- setNames(
       c("gray80", "gray40", get_greens_palette(length(labels) - 2)),
