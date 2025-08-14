@@ -212,7 +212,6 @@ generate_and_save_map <- function(
       na.translate = FALSE,
       name = "Average Income",
       drop = TRUE,
-      limits = all_levels
     )
     legend_name <- "Average Income Bracket"
     map_var_aes <- sym("map_var")
