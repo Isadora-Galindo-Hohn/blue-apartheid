@@ -120,30 +120,63 @@ generate_and_save_map <- function(
     map_var_aes <- sym("map_var") # Use the new 'map_var' column
   } else if (variable_name == "income_bracket") {
     # Income bracket
-    
+
     # Income bracket
-    
+
     # Define the breaks and labels for the income brackets only
-    breaks <- c(200, 600, 1200, 2400, 4800, 9600, 19200, 38400, 76800, 153600, 300000, Inf)
-    labels <- c("R1-R400", "R401-R800", "R801-R1.6k", "R1.6k-R3.2k", "R3.2k-R6.4k", 
-                "R6.4k-R12.8k", "R12.8k-R25.6k", "R25.6k-R51.2k", "R51.2k-R102.4k", 
-                "R102.4k-R204.8k", "R204.8k+")
-    
+    breaks <- c(
+      200,
+      600,
+      1200,
+      2400,
+      4800,
+      9600,
+      19200,
+      38400,
+      76800,
+      153600,
+      300000,
+      Inf
+    )
+    labels <- c(
+      "R1-R400",
+      "R401-R800",
+      "R801-R1.6k",
+      "R1.6k-R3.2k",
+      "R3.2k-R6.4k",
+      "R6.4k-R12.8k",
+      "R12.8k-R25.6k",
+      "R25.6k-R51.2k",
+      "R51.2k-R102.4k",
+      "R102.4k-R204.8k",
+      "R204.8k+"
+    )
+
     # Define all possible levels, including the special cases
-    all_levels <- c(labels, "No Income", "Respondent refused or did not know", "Missing Data")
-    
+    all_levels <- c(
+      labels,
+      "No Income",
+      "Respondent refused or did not know",
+      "Missing Data"
+    )
+
     print("Step 0")
     print(table(current_wards_sf$avrage_inc, useNA = "ifany"))
-    
+
     current_wards_sf <- current_wards_sf %>%
       mutate(
         # Convert to numeric first
         avrage_inc_num = suppressWarnings(as.numeric(avrage_inc)),
-        
+
         # Create a new column 'map_var' to hold the categorized data
         # Note: We now use `breaks` and `labels` without "No Income"
-        map_var = cut(avrage_inc_num, breaks = breaks, labels = labels, right = FALSE),
-        
+        map_var = cut(
+          avrage_inc_num,
+          breaks = breaks,
+          labels = labels,
+          right = FALSE
+        ),
+
         # Correctly label the special cases based on their original value
         map_var = as.character(map_var),
         map_var = case_when(
@@ -152,28 +185,28 @@ generate_and_save_map <- function(
           is.na(map_var) ~ "Missing Data",
           TRUE ~ map_var
         ),
-        
+
         # Convert to a factor with all levels, ensuring no duplicates
         map_var = factor(map_var, levels = all_levels)
       )
-    
+
     print("Step 1")
     print(table(current_wards_sf$avrage_inc_num, useNA = "ifany"))
-    
+
     print("Step 2 (final categories)")
     print(table(current_wards_sf$map_var, useNA = "ifany"))
-    
+
     # Define colors for all levels
     map_colors <- setNames(
       c(
         get_greens_palette(length(labels)), # Colors for the 11 income brackets
-        "black",                            # Color for "No Income"
-        "gray80",                           # Color for "Respondent refused or did not know"
-        "gray40"                            # Color for "Missing Data"
+        "black", # Color for "No Income"
+        "gray80", # Color for "Respondent refused or did not know"
+        "gray40" # Color for "Missing Data"
       ),
       all_levels
     )
-    
+
     scale_fn <- scale_fill_manual(
       values = map_colors,
       na.translate = FALSE,
