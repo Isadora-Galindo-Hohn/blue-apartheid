@@ -114,111 +114,72 @@ generate_and_save_map <- function(
     scale_fn <- scale_fill_manual(
       values = map_colors,
       na.translate = FALSE,
-      name = "Dominant\nGroup"
+      name = "Dominant Group"
     )
     legend_name <- "Dominant Population Group"
     map_var_aes <- sym("map_var") # Use the new 'map_var' column
   } else if (variable_name == "income_bracket") {
     # Income bracket
-    breaks = c(-3, -2, -1, 0, 200, 600, 1200, 2400, 4800, 9600, Inf)
-    labels = c(
-      "No Data",
-      "Respondent refused or did not know",
-      "No Income",
-      "R0 - R200",
-      "R200 - R600",
-      "R600 - R1200",
-      "R1200 - R2400",
-      "R2400 - R4800",
-      "R4800 - R9600",
-      "R9600+"
-    )
-    breaks <- income_midpoints_numeric
-    breaks <- breaks[
-      !is.na(breaks) & breaks != "NaN" & breaks != 300000
-    ]
-    breaks <- c(-3, -2, -1, breaks, Inf)
-    labels <- income_labels_text
-    # "No data" -> "No Data"
-    labels <- labels[labels != "No data"]
-    labels <- c("No Data", labels)
-
+    
+    # Income bracket
+    
+    # Define the breaks and labels for the income brackets only
+    breaks <- c(200, 600, 1200, 2400, 4800, 9600, 19200, 38400, 76800, 153600, 300000, Inf)
+    labels <- c("R1-R400", "R401-R800", "R801-R1.6k", "R1.6k-R3.2k", "R3.2k-R6.4k", 
+                "R6.4k-R12.8k", "R12.8k-R25.6k", "R25.6k-R51.2k", "R51.2k-R102.4k", 
+                "R102.4k-R204.8k", "R204.8k+")
+    
+    # Define all possible levels, including the special cases
+    all_levels <- c(labels, "No Income", "Respondent refused or did not know", "Missing Data")
+    
     print("Step 0")
     print(table(current_wards_sf$avrage_inc, useNA = "ifany"))
+    
     current_wards_sf <- current_wards_sf %>%
       mutate(
-        avrage_inc_num = ifelse(
-          current_wards_sf$avrage_inc == "NaN",
-          -1,
-          suppressWarnings(as.numeric(current_wards_sf$avrage_inc)) # NAs expected so supress warnings
-        )
+        # Convert to numeric first
+        avrage_inc_num = suppressWarnings(as.numeric(avrage_inc)),
+        
+        # Create a new column 'map_var' to hold the categorized data
+        # Note: We now use `breaks` and `labels` without "No Income"
+        map_var = cut(avrage_inc_num, breaks = breaks, labels = labels, right = FALSE),
+        
+        # Correctly label the special cases based on their original value
+        map_var = as.character(map_var),
+        map_var = case_when(
+          is.nan(avrage_inc_num) ~ "Respondent refused or did not know",
+          avrage_inc_num == 0 ~ "No Income",
+          is.na(map_var) ~ "Missing Data",
+          TRUE ~ map_var
+        ),
+        
+        # Convert to a factor with all levels, ensuring no duplicates
+        map_var = factor(map_var, levels = all_levels)
       )
-
-    current_wards_sf <- current_wards_sf %>%
-      mutate(
-        avrage_inc_num = ifelse(
-          current_wards_sf$avrage_inc == "NaN",
-          -1,
-          suppressWarnings(as.numeric(current_wards_sf$avrage_inc)) # NAs expected so supress warnings
-        )
-      )
-
+    
     print("Step 1")
     print(table(current_wards_sf$avrage_inc_num, useNA = "ifany"))
-    current_wards_sf <- current_wards_sf %>%
-      mutate(
-        avrage_inc_num = ifelse(
-          is.na(current_wards_sf$avrage_inc),
-          -1,
-          suppressWarnings(as.numeric(current_wards_sf$avrage_inc)) # NAs expected so supress warnings
-        )
-      )
-
-    print("Step 2")
-    print(table(current_wards_sf$avrage_inc_num, useNA = "ifany"))
-    current_wards_sf <- current_wards_sf %>%
-      mutate(
-        map_var = case_when(
-          avrage_inc_num == -1 ~ "Respondent refused or did not know",
-          avrage_inc_num == -2 ~ "No Data",
-          avrage_inc_num == 0 ~ "No Income",
-          # TRUE ~
-          #   as.character(cut(
-          #     avrage_inc_num,
-          #     breaks = breaks,
-          #     labels = labels,
-          #     include.lowest = TRUE,
-          #     right = FALSE
-          #   ))
-        ),
-        # map_var = ifelse(is.na(map_var), "No Data", map_var),
-        # map_var = factor(map_var, levels = labels)
-      )
-
-    print("Step 3")
+    
+    print("Step 2 (final categories)")
     print(table(current_wards_sf$map_var, useNA = "ifany"))
-
-    current_wards_sf <- current_wards_sf %>%
-      mutate(
-        map_var = as.character(map_var) ##,
-        # map_var = ifelse(is.na(map_var), "No Data", map_var)
-      ) %>%
-      mutate(
-        map_var = factor(map_var, levels = labels)
-      )
-
-    print("Step 4")
-    print(table(current_wards_sf$map_var, useNA = "ifany"))
-
+    
+    # Define colors for all levels
     map_colors <- setNames(
-      c("gray80", "gray40", get_greens_palette(length(labels) - 2)),
-      labels
+      c(
+        get_greens_palette(length(labels)), # Colors for the 11 income brackets
+        "black",                            # Color for "No Income"
+        "gray80",                           # Color for "Respondent refused or did not know"
+        "gray40"                            # Color for "Missing Data"
+      ),
+      all_levels
     )
+    
     scale_fn <- scale_fill_manual(
       values = map_colors,
       na.translate = FALSE,
-      name = "Average\nIncome",
-      drop = TRUE
+      name = "Average Income",
+      drop = TRUE,
+      limits = all_levels
     )
     legend_name <- "Average Income Bracket"
     map_var_aes <- sym("map_var")
@@ -287,7 +248,7 @@ generate_and_save_map <- function(
     scale_fn <- scale_fill_brewer(
       palette = "YlOrRd",
       na.value = "grey80",
-      name = "Pop. Density\n(per km\u00b2)",
+      name = "Pop. Density (per km\u00b2)",
       drop = FALSE
     )
     legend_name <- "Population Density"
@@ -365,7 +326,7 @@ generate_and_save_map <- function(
     scale_fn <- scale_fill_manual(
       values = setNames(map_colors, labels_with_no_data),
       na.value = "grey80",
-      name = "interruption\nFrequency",
+      name = "Interruption Frequency",
       drop = FALSE,
       limits = labels
     )
